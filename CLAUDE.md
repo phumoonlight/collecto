@@ -58,7 +58,8 @@ scrypt(passphrase; N=2^17, r=8, p=1), prefix as AAD, passphrase trimmed + NFC, �
 prompt uses one raw-mode stdin reader for all prompts — pausing stdin between prompts made
 Node exit on Windows. The app decodes it in `setup.rs` (`set_connection` command, off
 the async runtime), checks the board answers (`db::check`), then stores the JSON in the OS
-credential store via `keyring` (service `app.phumoonlight.collecto`, `.dev` for debug).
+credential store via `keyring`, named `app.phumoonlight.collecto[.dev].connection` (`.dev` for
+debug; an entry under keyring's default name `connection.<service>` is moved on load).
 `config::config()` is runtime state (`Arc`, swapped by `config::set`); `db::pool()` rebuilds
 when the `Arc` changes. Not set up → the window is only `SetupPage` (no header); a connect or
 disconnect reloads the window so no screen keeps the old board's state. The two

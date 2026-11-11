@@ -90,16 +90,40 @@ fn check(config: &AppConfig) -> Result<(), String> {
 
 /// One credential per build flavour, so a debug build never reads or replaces the board the
 /// installed copy uses.
+const SERVICE: &str = if cfg!(debug_assertions) { "app.phumoonlight.collecto.dev" } else { "app.phumoonlight.collecto" };
+const USER: &str = "connection";
+
+/// Named `<service>.connection` in Credential Manager, so it sorts with the app's identifier.
+/// keyring's own default would be `connection.<service>`.
 fn entry() -> Result<keyring::Entry, String> {
-    let service = if cfg!(debug_assertions) { "app.phumoonlight.collecto.dev" } else { "app.phumoonlight.collecto" };
-    keyring::Entry::new(service, "connection").map_err(|e| e.to_string())
+    keyring::Entry::new_with_target(&format!("{SERVICE}.{USER}"), SERVICE, USER).map_err(|e| e.to_string())
+}
+
+/// Where earlier builds kept it, under keyring's default name.
+fn legacy_entry() -> Result<keyring::Entry, String> {
+    keyring::Entry::new(SERVICE, USER).map_err(|e| e.to_string())
 }
 
 /// The connection saved on this machine, if any. A credential that will not parse counts as
 /// none — the window asks for a code again rather than failing.
 pub fn load() -> Option<AppConfig> {
-    let json = entry().ok()?.get_password().ok()?;
+    let json = match entry().ok()?.get_password() {
+        Ok(json) => json,
+        Err(keyring::Error::NoEntry) => adopt_legacy()?,
+        Err(_) => return None,
+    };
     serde_json::from_str(&json).ok()
+}
+
+/// Moves a credential saved under the old name to the new one. The old one is deleted only
+/// once the copy is written, so a failure leaves it where it was to be tried next start.
+fn adopt_legacy() -> Option<String> {
+    let old = legacy_entry().ok()?;
+    let json = old.get_password().ok()?;
+    if entry().ok()?.set_password(&json).is_ok() {
+        let _ = old.delete_credential();
+    }
+    Some(json)
 }
 
 pub fn save(config: &AppConfig) -> Result<(), String> {
@@ -107,11 +131,15 @@ pub fn save(config: &AppConfig) -> Result<(), String> {
     entry()?.set_password(&json).map_err(|e| format!("Could not save to the credential store: {e}"))
 }
 
+/// Both names, so a disconnect can't leave an old-named copy that the next start would adopt.
 pub fn forget() -> Result<(), String> {
-    match entry()?.delete_credential() {
-        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
-        Err(error) => Err(error.to_string()),
+    for entry in [entry()?, legacy_entry()?] {
+        match entry.delete_credential() {
+            Ok(()) | Err(keyring::Error::NoEntry) => {}
+            Err(error) => return Err(error.to_string()),
+        }
     }
+    Ok(())
 }
 
 #[cfg(test)]
