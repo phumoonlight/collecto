@@ -4,6 +4,9 @@ import { bytes } from '../image-url'
 import { BUTTON_ON_SURFACE, BUTTON_SUBMIT_ON_SURFACE } from './buttons'
 import { FIELD } from './panel'
 
+/** One width for the row labels, so the links and source boxes start at the same edge. */
+const ROW_LABEL = 'w-28 shrink-0'
+
 /** What happened to one file once Upload was pressed. */
 type Landed = { name: string; ok: boolean; message: string }
 
@@ -111,7 +114,18 @@ export function useStaging(collectionId: string, onUploaded: () => void) {
     onUploaded()
   }
 
-  return { staged, setStaged, rejected, landed, source, setSource, working, stage, stageLinks, upload }
+  return {
+    staged,
+    setStaged,
+    rejected,
+    landed,
+    source,
+    setSource,
+    working,
+    stage,
+    stageLinks,
+    upload,
+  }
 }
 
 type Staging = ReturnType<typeof useStaging>
@@ -146,8 +160,8 @@ export function StagingBox({
           <span aria-hidden>📥</span> Add images
         </button>
         <span className="text-xs text-muted">
-          or drop them anywhere on the window — JPG, PNG, GIF or WebP, kept in their own format
-          and compressed losslessly
+          or drop them anywhere on the window — JPG, PNG, GIF or WebP, kept in their own format and
+          compressed losslessly
         </span>
       </div>
 
@@ -162,11 +176,11 @@ export function StagingBox({
         }}
         className="flex items-center gap-2 text-xs text-muted"
       >
-        Links
+        <span className={ROW_LABEL}>or from links</span>
         <input
           value={links}
           onChange={(event) => setLinks(event.target.value)}
-          placeholder="https://… image addresses, separated by spaces"
+          placeholder="https://…/image.jpg — image addresses to download, separated by spaces"
           spellCheck={false}
           className={`${FIELD} min-w-0 flex-1 bg-background`}
         />
@@ -179,27 +193,38 @@ export function StagingBox({
         </button>
       </form>
 
-      <label className="flex items-center gap-2 text-xs text-muted">
-        Source
-        <input
-          value={source}
-          onChange={(event) => setSource(event.target.value)}
-          placeholder="https://x.com/… — applied to every image in this batch"
-          spellCheck={false}
-          className={`${FIELD} min-w-0 flex-1 bg-background`}
-        />
-        {source !== '' && (
-          <button
-            type="button"
-            onClick={() => setSource('')}
-            title="Clear the source"
-            aria-label="Clear the source"
-            className={BUTTON_ON_SURFACE}
-          >
-            <span aria-hidden>✕</span>
-          </button>
-        )}
-      </label>
+      {/* Set apart from the links above, which look alike but add images: this one only
+          labels them. A rule, its own icon and a line saying what it does. */}
+      <div className="flex flex-col gap-1.5 border-t border-border pt-3">
+        <label className="flex items-center gap-2 text-xs text-muted">
+          <span className={ROW_LABEL}>
+            <span aria-hidden>🏷️</span> Source
+          </span>
+          <input
+            value={source}
+            onChange={(event) => setSource(event.target.value)}
+            placeholder="https://x.com/… — where these images came from (optional)"
+            spellCheck={false}
+            className={`${FIELD} min-w-0 flex-1 bg-background`}
+          />
+          {source !== '' && (
+            <button
+              type="button"
+              onClick={() => setSource('')}
+              title="Clear the source"
+              aria-label="Clear the source"
+              className={BUTTON_ON_SURFACE}
+            >
+              <span aria-hidden>✕</span>
+            </button>
+          )}
+        </label>
+        {/* Indented by the label's width (w-28) plus the row's gap, under the box. */}
+        <p className="pl-30 text-xs text-muted/80">
+          Saved on every image in this batch and linked from its post on the site. It does not add
+          images.
+        </p>
+      </div>
 
       {working && <p className="text-xs text-muted">{working}</p>}
 
@@ -269,7 +294,10 @@ export function StagingBox({
       {landed.length > 0 && (
         <ul className="flex flex-col gap-0.5 text-xs">
           {landed.map((result, at) => (
-            <li key={`${at}:${result.name}`} className={result.ok ? 'text-muted' : 'text-[#ff5d5f]'}>
+            <li
+              key={`${at}:${result.name}`}
+              className={result.ok ? 'text-muted' : 'text-[#ff5d5f]'}
+            >
               {result.name}: {result.message}
             </li>
           ))}
