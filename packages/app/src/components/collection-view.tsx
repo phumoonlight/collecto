@@ -204,6 +204,7 @@ export function CollectionView({
           <Modal title="Edit collection" onClose={closeRenaming}>
             <CollectionForm
               initial={{ name, mark: shelf?.mark ?? '', refId: shelf?.ref_id ?? '' }}
+              withAddress
               submitLabel="Save"
               onSubmit={async (input) => {
                 const result = await api.editCollection(collectionId, input)

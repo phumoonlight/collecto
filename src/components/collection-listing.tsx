@@ -59,7 +59,7 @@ export async function CollectionListing({ filter }: { filter: CollectionListFilt
 
 /** What a URL segment must look like to be worth a query: a `ref_id` or a cuid2 id. */
 export function isSlug(segment: string): boolean {
-  return /^[a-z0-9-]{1,64}$/.test(segment)
+  return /^[a-z0-9_-]{1,64}$/.test(segment)
 }
 
 /**

@@ -167,23 +167,48 @@ fn conflict(error: sqlx::Error, name: &str, ref_id: Option<&str>) -> String {
     }
 }
 
-/// Names a new collection with a fresh cuid2 id, answering with that id.
+fn is_ref_conflict(error: &sqlx::Error) -> bool {
+    is_unique_violation(error)
+        && error.as_database_error().and_then(|e| e.constraint()) == Some("collections_ref_id_key")
+}
+
+/// Suffixed attempts before giving up on an address; five random base36 characters make even
+/// one collision unlikely.
+const REF_ATTEMPTS: usize = 5;
+
+/// Names a new collection with a fresh cuid2 id and an address made from its name
+/// (`names::ref_id_from_name`), answering with both. The unique index decides a collision —
+/// a check-then-insert would race another copy of the app — and a taken address is retried
+/// as `<base>_xxxxx`. A taken *name* is refused as before.
 pub async fn create_collection(
     db: &PgPool,
     name: &str,
     mark: Option<&str>,
-    ref_id: Option<&str>,
-) -> Result<String, String> {
+    base: Option<&str>,
+) -> Result<(String, Option<String>), String> {
     let id = cuid2::create_id();
-    sqlx::query("insert into collections (id, name, mark, ref_id) values ($1, $2, $3, $4)")
-        .bind(&id)
-        .bind(name)
-        .bind(mark)
-        .bind(ref_id)
-        .execute(db)
-        .await
-        .map_err(|e| conflict(e, name, ref_id))?;
-    Ok(id)
+    for attempt in 0..=REF_ATTEMPTS {
+        let ref_id = base.map(|base| {
+            if attempt == 0 && !crate::names::needs_suffix(base) {
+                base.to_string()
+            } else {
+                crate::names::ref_id_with_suffix(base)
+            }
+        });
+        let inserted = sqlx::query("insert into collections (id, name, mark, ref_id) values ($1, $2, $3, $4)")
+            .bind(&id)
+            .bind(name)
+            .bind(mark)
+            .bind(ref_id.as_deref())
+            .execute(db)
+            .await;
+        match inserted {
+            Ok(_) => return Ok((id, ref_id)),
+            Err(error) if is_ref_conflict(&error) && attempt < REF_ATTEMPTS => continue,
+            Err(error) => return Err(conflict(error, name, ref_id.as_deref())),
+        }
+    }
+    unreachable!("the last attempt returns")
 }
 
 /// A rename is a change to the shelf itself, so it moves to the top of the list.

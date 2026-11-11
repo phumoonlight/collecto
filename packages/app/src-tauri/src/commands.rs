@@ -116,7 +116,7 @@ pub async fn list_collections(force: Option<bool>) -> Result<Vec<Collection>, St
 pub struct CollectionInput {
     name: String,
     mark: String,
-    /// The web address segment; empty for none.
+    /// The web address segment, for an edit; empty for none. Ignored on create.
     #[serde(default)]
     ref_id: String,
 }
@@ -141,7 +141,8 @@ fn collection_id(id: String) -> Result<String, Value> {
 #[tauri::command]
 pub async fn create_collection(input: CollectionInput) -> Value {
     let input = bounded(input);
-    collections::create(input.name, input.mark, input.ref_id).await
+    // The address is made from the name; one sent along is ignored.
+    collections::create(input.name, input.mark).await
 }
 
 #[tauri::command]

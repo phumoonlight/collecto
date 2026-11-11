@@ -12,7 +12,7 @@ use crate::compress;
 use crate::data::{self, Collection, NewPost, PostPage};
 use crate::db::require;
 use crate::image_cache;
-use crate::names::{read_mark, read_name, read_ref_id, read_source};
+use crate::names::{read_mark, read_name, read_ref_id, read_source, ref_id_from_name};
 use crate::paths::{image_path, thumb_path};
 use crate::prefs;
 use crate::staging::md5_hex;
@@ -37,14 +37,16 @@ pub async fn read_posts(collection_id: String, after: Option<i32>, per_page: Opt
     cache::posts(&collection_id, after, per_page, || data::list_collection_posts(db, &collection_id, after, per_page)).await
 }
 
-pub async fn create(name: String, mark: String, ref_id: String) -> Value {
-    let detail = json!({ "name": name, "mark": mark, "refId": ref_id });
+/// A new collection's address is made from its name — it is not typed here; the edit form
+/// changes it afterwards.
+pub async fn create(name: String, mark: String) -> Value {
+    let detail = json!({ "name": name, "mark": mark });
     logged("collection:create", detail, async {
         let db = require()?;
         let name = read_name(&name)?;
         let mark = read_mark(&mark)?;
-        let ref_id = read_ref_id(&ref_id)?;
-        let id = dropping(data::create_collection(db, &name, mark.as_deref(), ref_id.as_deref())).await?;
+        let base = ref_id_from_name(&name);
+        let (id, ref_id) = dropping(data::create_collection(db, &name, mark.as_deref(), base.as_deref())).await?;
         Ok(json!({ "id": id, "name": name, "mark": mark, "ref_id": ref_id }))
     })
     .await
