@@ -11,7 +11,7 @@ import {
  * `npm run app:code` — prints the setup code the desktop app asks for on first start: the seven
  * values it needs, read from this machine's environment file, encrypted with a passphrase.
  *
- * The passphrase comes from `COLLECTO_PASSPHRASE` when it is set and not empty (the shell, or
+ * The passphrase comes from `APP_CODE_GEN_PASSPHRASE` when it is set and not empty (the shell, or
  * the environment file); otherwise it is typed (hidden, twice), or generated when Enter is
  * pressed on an empty line. The code is checked by
  * decoding it again before it is printed.
@@ -106,14 +106,14 @@ function hiddenReader() {
 }
 
 /**
- * `COLLECTO_PASSPHRASE` first — from the shell, or the environment file — and the prompt when
- * it is unset or empty, so an empty `COLLECTO_PASSPHRASE=` line in the file still asks.
+ * `APP_CODE_GEN_PASSPHRASE` first — from the shell, or the environment file — and the prompt when
+ * it is unset or empty, so an empty `APP_CODE_GEN_PASSPHRASE=` line in the file still asks.
  */
 async function choosePassphrase(): Promise<{ passphrase: string; generated: boolean }> {
-  const given = process.env.COLLECTO_PASSPHRASE ?? ''
+  const given = process.env.APP_CODE_GEN_PASSPHRASE ?? ''
   if (normalizePassphrase(given) !== '') return { passphrase: given, generated: false }
   if (!process.stdin.isTTY) {
-    console.error('Not a terminal — set COLLECTO_PASSPHRASE to pass the passphrase.')
+    console.error('Not a terminal — set APP_CODE_GEN_PASSPHRASE to pass the passphrase.')
     process.exit(1)
   }
 
