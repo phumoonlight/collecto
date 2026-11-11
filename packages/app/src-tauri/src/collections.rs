@@ -12,7 +12,7 @@ use crate::compress;
 use crate::data::{self, Collection, NewPost, PostPage};
 use crate::db::require;
 use crate::image_cache;
-use crate::names::{read_mark, read_name, read_source};
+use crate::names::{read_mark, read_name, read_ref_id, read_source};
 use crate::paths::{image_path, thumb_path};
 use crate::prefs;
 use crate::staging::md5_hex;
@@ -31,40 +31,42 @@ pub async fn read_collections(force: bool) -> Result<Vec<Collection>, String> {
     cache::collections(force, || data::list_collections(db)).await
 }
 
-pub async fn read_posts(collection_id: i32, after: Option<i32>, per_page: Option<i64>) -> Result<PostPage, String> {
+pub async fn read_posts(collection_id: String, after: Option<i32>, per_page: Option<i64>) -> Result<PostPage, String> {
     let db = require()?;
     let per_page = per_page.unwrap_or(PAGE_SIZE).clamp(1, 200);
-    cache::posts(collection_id, after, per_page, || data::list_collection_posts(db, collection_id, after, per_page)).await
+    cache::posts(&collection_id, after, per_page, || data::list_collection_posts(db, &collection_id, after, per_page)).await
 }
 
-pub async fn create(name: String, mark: String) -> Value {
-    let detail = json!({ "name": name, "mark": mark });
+pub async fn create(name: String, mark: String, ref_id: String) -> Value {
+    let detail = json!({ "name": name, "mark": mark, "refId": ref_id });
     logged("collection:create", detail, async {
         let db = require()?;
         let name = read_name(&name)?;
         let mark = read_mark(&mark)?;
-        let id = dropping(data::create_collection(db, &name, mark.as_deref())).await?;
-        Ok(json!({ "id": id, "name": name, "mark": mark }))
+        let ref_id = read_ref_id(&ref_id)?;
+        let id = dropping(data::create_collection(db, &name, mark.as_deref(), ref_id.as_deref())).await?;
+        Ok(json!({ "id": id, "name": name, "mark": mark, "ref_id": ref_id }))
     })
     .await
 }
 
-pub async fn edit(id: i32, name: String, mark: String) -> Value {
-    let detail = json!({ "id": id, "name": name, "mark": mark });
+pub async fn edit(id: String, name: String, mark: String, ref_id: String) -> Value {
+    let detail = json!({ "id": id, "name": name, "mark": mark, "refId": ref_id });
     logged("collection:edit", detail, async {
         let db = require()?;
         let name = read_name(&name)?;
         let mark = read_mark(&mark)?;
-        dropping(data::update_collection(db, id, &name, mark.as_deref())).await?;
-        Ok(json!({ "name": name, "mark": mark }))
+        let ref_id = read_ref_id(&ref_id)?;
+        dropping(data::update_collection(db, &id, &name, mark.as_deref(), ref_id.as_deref())).await?;
+        Ok(json!({ "name": name, "mark": mark, "ref_id": ref_id }))
     })
     .await
 }
 
-pub async fn delete(id: i32) -> Value {
+pub async fn delete(id: String) -> Value {
     logged("collection:delete", json!({ "id": id }), async {
         let db = require()?;
-        dropping(data::delete_collection(db, id)).await?;
+        dropping(data::delete_collection(db, &id)).await?;
         Ok(json!({}))
     })
     .await
@@ -110,7 +112,7 @@ async fn ours_to_remove(db: &sqlx::PgPool, md5: &str) -> bool {
 /// One file onto one shelf: inspect, refuse a duplicate, compress losslessly, make the
 /// thumbnail, store both, insert the row — and take back whatever landed if a later step
 /// fails. The bytes are read here, never sent across the bridge.
-pub async fn upload(collection_id: i32, path: String, source_url: String) -> Value {
+pub async fn upload(collection_id: String, path: String, source_url: String) -> Value {
     let detail = json!({ "collectionId": collection_id, "path": path, "sourceUrl": source_url });
     logged("collection:upload", detail, async move {
         let db = require()?;
@@ -164,7 +166,7 @@ pub async fn upload(collection_id: i32, path: String, source_url: String) -> Val
         }
 
         let row = NewPost {
-            collection_id,
+            collection_id: &collection_id,
             file_name: &md5,
             file_ext: ext,
             file_size: optimized.bytes.len() as i32,
@@ -210,14 +212,14 @@ pub async fn save_source(id: i32, source_url: String) -> Value {
     .await
 }
 
-pub async fn move_posts(ids: Vec<i32>, collection_id: i32) -> Value {
+pub async fn move_posts(ids: Vec<i32>, collection_id: String) -> Value {
     let detail = json!({ "ids": ids, "collectionId": collection_id });
     logged("collection:move-images", detail, async {
         let db = require()?;
         if ids.is_empty() {
             return Err("Nothing selected".into());
         }
-        let moved = dropping(data::move_posts(db, &ids, collection_id)).await?;
+        let moved = dropping(data::move_posts(db, &ids, &collection_id)).await?;
         Ok(json!({ "moved": moved }))
     })
     .await
@@ -232,7 +234,7 @@ pub async fn delete_post(id: i32) -> Value {
     };
     let detail = json!({
         "id": id,
-        "collectionId": post.as_ref().map(|p| p.collection_id),
+        "collectionId": post.as_ref().map(|p| p.collection_id.clone()),
         "fileName": post.as_ref().map(|p| p.file_name.clone()),
         "fileExt": post.as_ref().map(|p| p.file_ext.clone()),
     });

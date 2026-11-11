@@ -143,6 +143,7 @@ function Facts({ post }: { post: CollectionPost }) {
  */
 export function ImagePanel({
   post,
+  slug,
   siteUrl,
   onClose,
   onChanged,
@@ -152,6 +153,8 @@ export function ImagePanel({
   onStep,
 }: {
   post: CollectionPost
+  /** Its collection's address on the website (`collectionSlug`). */
+  slug: string
   siteUrl: string
   /** Whether the full-size viewer is open — the shelf's, since ← / → swap this keyed panel. */
   viewing: boolean
@@ -209,7 +212,7 @@ export function ImagePanel({
               <button
                 type="button"
                 onClick={() =>
-                  void api.openExternal(`${siteUrl}${collectionPostHref(post.collection_id, post.id)}`)
+                  void api.openExternal(`${siteUrl}${collectionPostHref(slug, post.id)}`)
                 }
                 className={BUTTON_ON_SURFACE}
               >

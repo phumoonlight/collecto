@@ -1,7 +1,7 @@
 'use client'
 
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
-import type { CollectionPost } from '@common/collections'
+import type { WebPost } from '@/lib/data/collections'
 import { CollectionGrid } from '@/components/collection-grid'
 import { loadMoreCollectionPosts } from '@/lib/api/collections'
 
@@ -19,11 +19,12 @@ export function CollectionFeed({
   initialPosts,
   hasMore: initialHasMore,
 }: {
-  collectionId: number
-  initialPosts: CollectionPost[]
+  /** The collection's cuid2 id — what the chunk route takes, whatever its address. */
+  collectionId: string
+  initialPosts: WebPost[]
   hasMore: boolean
 }) {
-  const [chunks, setChunks] = useState<CollectionPost[][]>([initialPosts])
+  const [chunks, setChunks] = useState<WebPost[][]>([initialPosts])
   const [hasMore, setHasMore] = useState(initialHasMore)
   const [pending, setPending] = useState(false)
   const [failed, setFailed] = useState(false)

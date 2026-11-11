@@ -1,11 +1,11 @@
-import type { CollectionPost } from '@common/collections'
+import type { WebPost } from '@/lib/data/collections'
 
 /**
  * The browser's half of `src/app/api/` — what a page asks for after it has been rendered.
  * Each throws on a failed response, so a feed's catch sees a dropped connection and a 500
  * alike.
  */
-type Page = { posts: CollectionPost[]; hasMore: boolean }
+type Page = { posts: WebPost[]; hasMore: boolean }
 
 async function json<T>(response: Response): Promise<T> {
   if (!response.ok) throw new Error(`${response.url}: ${response.status}`)
@@ -16,7 +16,7 @@ export async function loadMoreCollectionPosts({
   collectionId,
   after,
 }: {
-  collectionId: number
+  collectionId: string
   after: number
 }): Promise<Page> {
   const search = new URLSearchParams({ after: String(after) })

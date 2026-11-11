@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { getSitemapCollections } from '@/lib/data/collections'
-import { collectionHref, collectionsHref } from '@common/collections'
+import { collectionHref, collectionSlug, collectionsHref } from '@common/collections'
 import { isDatabaseConfigured } from '@/lib/db'
 import { siteUrl } from '@/config'
 
@@ -23,7 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...staticRoutes,
     ...collections.map((collection) => ({
-      url: `${base}${collectionHref(collection.id)}`,
+      url: `${base}${collectionHref(collectionSlug(collection))}`,
       lastModified: new Date(collection.updated_at),
       changeFrequency: 'weekly' as const,
       priority: 0.7,

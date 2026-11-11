@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from 'react'
 import Link from 'next/link'
-import type { CollectionPost } from '@common/collections'
+import type { WebPost } from '@/lib/data/collections'
 import { CollectionGrid } from '@/components/collection-grid'
 import { NavProgress } from '@/components/nav-progress'
 import { loadMoreLatestPosts } from '@/lib/api/collections'
@@ -25,10 +25,10 @@ export function LatestFeed({
   initialPosts,
   hasMore: initialHasMore,
 }: {
-  initialPosts: CollectionPost[]
+  initialPosts: WebPost[]
   hasMore: boolean
 }) {
-  const [chunks, setChunks] = useState<CollectionPost[][]>([initialPosts])
+  const [chunks, setChunks] = useState<WebPost[][]>([initialPosts])
   const [hasMore, setHasMore] = useState(initialHasMore)
   const [pending, setPending] = useState(false)
   const [failed, setFailed] = useState(false)

@@ -20,6 +20,8 @@ filter, no tags, no artists, no maintenance switch — and an app rewritten in R
   row but owns nothing. See [db/README.md](db/README.md).
 - **One R2 bucket**, public-read through a custom domain: `collections/posts/<md5>.<ext>`
   and `collections/thumbs/<md5>.<ext>`. Only the app holds a key.
+- **Collections are addressed by `ref_id`** — an optional, editable slug set in the app —
+  falling back to their cuid2 id: `/collections/<ref_id or id>`.
 - **The website is read-only.** Every change to the board is made in the app, with the
   database login and bucket key compiled into its build.
 

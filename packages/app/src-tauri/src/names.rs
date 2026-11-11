@@ -38,6 +38,40 @@ pub fn read_mark(raw: &str) -> Result<Option<String>, String> {
     Ok(Some(mark))
 }
 
+pub const REF_ID_MAX: usize = 64;
+
+/// A cuid2 as the database checks it: `^[a-z][a-z0-9]{23}$`.
+pub fn looks_like_id(value: &str) -> bool {
+    value.len() == 24
+        && value.starts_with(|c: char| c.is_ascii_lowercase())
+        && value.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+}
+
+/// A collection's web address segment — `/collections/<ref_id>` — or `None` for no address
+/// of its own (the cuid2 id is used). Lowercase letters, digits and single hyphens; typed
+/// capitals are lowered and spaces become hyphens. It may not have a cuid2's shape, so a URL
+/// segment can never mean two different collections. The same rule is a check constraint
+/// (`db/migrations/0002_collection_cuid_ref.sql`).
+pub fn read_ref_id(raw: &str) -> Result<Option<String>, String> {
+    let ref_id = raw.trim().to_lowercase().split_whitespace().collect::<Vec<_>>().join("-");
+    if ref_id.is_empty() {
+        return Ok(None);
+    }
+    if ref_id.chars().count() > REF_ID_MAX {
+        return Err(format!("That address is too long (max {REF_ID_MAX} characters)."));
+    }
+    let well_formed = ref_id
+        .split('-')
+        .all(|part| !part.is_empty() && part.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()));
+    if !well_formed {
+        return Err("An address uses a–z, 0–9 and single hyphens between them.".into());
+    }
+    if looks_like_id(&ref_id) {
+        return Err("That address looks like a collection id — add a hyphen or change its length.".into());
+    }
+    Ok(Some(ref_id))
+}
+
 pub const SOURCE_MAX: usize = 2000;
 
 /// An image's source: empty for none, otherwise an http(s) address. Anything else is refused
@@ -62,6 +96,21 @@ pub fn read_source(raw: &str) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ref_ids_are_url_segments() {
+        assert_eq!(read_ref_id("  ").unwrap(), None);
+        assert_eq!(read_ref_id(" Ukiyo E  Studies ").unwrap().as_deref(), Some("ukiyo-e-studies"));
+        assert_eq!(read_ref_id("2024").unwrap().as_deref(), Some("2024"));
+        assert!(read_ref_id("a--b").is_err());
+        assert!(read_ref_id("-a").is_err());
+        assert!(read_ref_id("café").is_err());
+        assert!(read_ref_id("../x").is_err());
+        assert!(read_ref_id(&"a".repeat(65)).is_err());
+        // The shape of a cuid2 is the id's, never an address.
+        assert!(read_ref_id(&cuid2::create_id()).is_err());
+        assert!(read_ref_id("abcdefghijklmnopqrstuvwx").is_err());
+    }
 
     #[test]
     fn sources_are_web_addresses() {

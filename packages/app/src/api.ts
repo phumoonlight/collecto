@@ -82,7 +82,10 @@ export type LogEntry = {
   detail?: Record<string, unknown>
 }
 
-type CollectionInput = { name: string; mark: string }
+/** `refId` is the web address segment; '' for none. */
+type CollectionInput = { name: string; mark: string; refId: string }
+
+type Named = { name: string; mark: string | null; ref_id: string | null }
 
 export const api = {
   getStatus: () => invoke<AppStatus>('app_status'),
@@ -98,24 +101,24 @@ export const api = {
   /** Every shelf, cached for a day; `force` is 🔄 Refresh. */
   listCollections: (force = false) => invoke<Collection[]>('list_collections', { force }),
   createCollection: (input: CollectionInput) =>
-    invoke<{ ok: true; id: number; name: string; mark: string | null } | { ok: false; error: string }>(
+    invoke<({ ok: true; id: string } & Named) | { ok: false; error: string }>(
       'create_collection',
       { input }
     ),
-  editCollection: (id: number, input: CollectionInput) =>
-    invoke<{ ok: true; name: string; mark: string | null } | { ok: false; error: string }>(
+  editCollection: (id: string, input: CollectionInput) =>
+    invoke<({ ok: true } & Named) | { ok: false; error: string }>(
       'edit_collection',
       { id, input }
     ),
   /** Refused while the shelf still holds anything. */
-  deleteCollection: (id: number) => invoke<Outcome>('delete_collection', { id }),
-  listCollectionPosts: (query: { collectionId: number; after?: number; perPage?: number }) =>
+  deleteCollection: (id: string) => invoke<Outcome>('delete_collection', { id }),
+  listCollectionPosts: (query: { collectionId: string; after?: number; perPage?: number }) =>
     invoke<CollectionPostPage>('list_collection_posts', { query }),
-  uploadToCollection: (request: { collectionId: number; path: string; sourceUrl: string }) =>
+  uploadToCollection: (request: { collectionId: string; path: string; sourceUrl: string }) =>
     invoke<UploadResult>('upload_to_collection', { request }),
   saveCollectionPost: (request: { id: number; sourceUrl: string }) =>
     invoke<Outcome>('save_collection_post', { request }),
-  moveCollectionPosts: (ids: number[], collectionId: number) =>
+  moveCollectionPosts: (ids: number[], collectionId: string) =>
     invoke<{ ok: true; moved: number } | { ok: false; error: string }>('move_collection_posts', {
       ids,
       collectionId,

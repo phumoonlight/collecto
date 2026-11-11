@@ -40,6 +40,7 @@ md-5 = "0.11"
 base64 = "0.23"
 unicode-segmentation = "1"
 url = "2"
+cuid2 = "0.1"
 
 [profile.dev.package."*"]
 # Image codecs are unusably slow unoptimized, even in a dev build.

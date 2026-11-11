@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { CollectionFeed } from '@/components/collection-feed'
 import { CollectionSearch } from '@/components/collection-search'
 import { CollectionShelf } from '@/components/collection-shelf'
@@ -14,7 +14,12 @@ import {
   listCollectionPosts,
   listCollections,
 } from '@/lib/data/collections'
-import { collectionHref, collectionsHref, type CollectionListFilter } from '@common/collections'
+import {
+  collectionHref,
+  collectionSlug,
+  collectionsHref,
+  type CollectionListFilter,
+} from '@common/collections'
 import { collectionThumbUrl } from '@/lib/images'
 import { SITE_NAME } from '@/config'
 
@@ -52,17 +57,25 @@ export async function CollectionListing({ filter }: { filter: CollectionListFilt
   )
 }
 
-/** One collection — `/collections/[id]`. */
+/** What a URL segment must look like to be worth a query: a `ref_id` or a cuid2 id. */
+export function isSlug(segment: string): boolean {
+  return /^[a-z0-9-]{1,64}$/.test(segment)
+}
+
+/**
+ * One collection — `/collections/[slug]`. Reached by its id while it has a `ref_id`, it
+ * redirects to the `ref_id` address, so each collection has one canonical URL. Not a permanent
+ * redirect: the `ref_id` can be changed in the app.
+ */
 export async function CollectionPage({ id }: { id: string }) {
   if (!isDatabaseConfigured()) return <Unconfigured />
+  if (!isSlug(id)) notFound()
 
-  const collectionId = Number(id)
-  if (!Number.isInteger(collectionId) || collectionId < 1) notFound()
-
-  const collection = await getCollection(collectionId)
+  const collection = await getCollection(id)
   if (!collection) notFound()
+  if (id !== collectionSlug(collection)) redirect(collectionHref(collectionSlug(collection)))
 
-  const { posts, hasMore } = await listCollectionPosts(collectionId, {
+  const { posts, hasMore } = await listCollectionPosts(collection.id, {
     perPage: COLLECTION_PAGE_SIZE,
   })
 
@@ -92,7 +105,7 @@ export async function CollectionPage({ id }: { id: string }) {
           Nothing in this collection.
         </p>
       ) : (
-        <CollectionFeed collectionId={collectionId} initialPosts={posts} hasMore={hasMore} />
+        <CollectionFeed collectionId={collection.id} initialPosts={posts} hasMore={hasMore} />
       )}
     </div>
   )
@@ -100,11 +113,10 @@ export async function CollectionPage({ id }: { id: string }) {
 
 /** A collection's metadata: a fixed listing with a name, worth indexing. */
 export async function collectionMetadata(id: string): Promise<Metadata> {
-  const collectionId = Number(id)
-  if (!Number.isInteger(collectionId) || collectionId < 1) return { title: 'Collection not found' }
+  if (!isSlug(id)) return { title: 'Collection not found' }
   if (!isDatabaseConfigured()) return { title: 'Collection' }
 
-  const collection = await getCollection(collectionId)
+  const collection = await getCollection(id)
   if (!collection) {
     return { title: 'Collection not found', robots: { index: false, follow: false } }
   }
@@ -120,13 +132,13 @@ export async function collectionMetadata(id: string): Promise<Metadata> {
   return {
     title: collection.name,
     description,
-    alternates: { canonical: collectionHref(collection.id) },
+    alternates: { canonical: collectionHref(collectionSlug(collection)) },
     // An empty shelf is not on the list, so it is not a page to be found either.
     robots: collection.post_count === 0 ? { index: false, follow: true } : undefined,
     openGraph: {
       type: 'website',
       siteName: SITE_NAME,
-      url: collectionHref(collection.id),
+      url: collectionHref(collectionSlug(collection)),
       title: collection.name,
       description,
       images: cover,

@@ -21,7 +21,7 @@ function linksIn(text: string): string[] {
  * one post. It is cleared with the batch once it lands, so the next batch does not quietly
  * get the last post's address.
  */
-export function useStaging(collectionId: number, onUploaded: () => void) {
+export function useStaging(collectionId: string, onUploaded: () => void) {
   const [staged, setStaged] = useState<StagedFile[]>([])
   const [rejected, setRejected] = useState<string[]>([])
   const [landed, setLanded] = useState<Landed[]>([])

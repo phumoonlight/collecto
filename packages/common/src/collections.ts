@@ -10,7 +10,8 @@
 /** One image on a shelf. */
 export type CollectionPost = {
   id: number
-  collection_id: number
+  /** Its collection's cuid2 id. */
+  collection_id: string
   /** The md5 of the uploaded bytes — names both stored objects. */
   file_name: string
   /** The uploaded format, kept: images are compressed losslessly, never converted. */
@@ -29,7 +30,10 @@ export type CollectionPost = {
 
 /** A shelf, as the list draws it: its name, how many images it holds, and its cover. */
 export type Collection = {
-  id: number
+  /** A cuid2, made by the app when the collection is named. Never changes. */
+  id: string
+  /** The collection's web address segment, when it has one — see `collectionSlug`. */
+  ref_id: string | null
   name: string
   /** Drawn in front of the name, as typed — an emoji, `[WIP]`. */
   mark: string | null
@@ -73,13 +77,26 @@ export function readCollectionFilter(
   return name ? { name } : {}
 }
 
-export function collectionHref(id: number): string {
-  return `${COLLECTIONS_PATH}/${id}`
+/**
+ * What stands for a collection in its web address: its `ref_id` when it has one, its cuid2
+ * id otherwise. The id always works as an address too; the website redirects it to the
+ * `ref_id` form. The two can never collide — a `ref_id` may not have a cuid2's shape.
+ */
+export function collectionSlug(collection: { id: string; ref_id: string | null }): string {
+  return collection.ref_id ?? collection.id
+}
+
+/** A cuid2 as the database checks it — what a URL segment is when it is an id. */
+export const CUID2_PATTERN = /^[a-z][a-z0-9]{23}$/
+
+/** `slug` is `collectionSlug(collection)`. */
+export function collectionHref(slug: string): string {
+  return `${COLLECTIONS_PATH}/${slug}`
 }
 
 /** One image, nested under its shelf: it has no existence outside it. */
-export function collectionPostHref(collectionId: number, postId: number): string {
-  return `${COLLECTIONS_PATH}/${collectionId}/${postId}`
+export function collectionPostHref(slug: string, postId: number): string {
+  return `${COLLECTIONS_PATH}/${slug}/${postId}`
 }
 
 /** A shelf's name with its mark in front, as every heading and card draws it. */

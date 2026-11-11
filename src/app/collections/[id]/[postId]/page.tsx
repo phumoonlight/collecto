@@ -8,10 +8,11 @@ export async function generateMetadata({
 }
 
 /**
- * One image from a collection. `[id]` is its shelf, in the URL because that is the context it
- * is read in — but `collection_id` on the row is the authority, so a mismatched pair in a
- * hand-typed URL resolves to the image's real shelf.
+ * One image from a collection. `[id]` is its collection's address segment (`ref_id`, or the
+ * cuid2 id) — the row is the authority, and a segment that is not the current address
+ * redirects to the canonical URL.
  */
 export default async function Page({ params }: PageProps<'/collections/[id]/[postId]'>) {
-  return <CollectionDetail id={(await params).postId} />
+  const { id, postId } = await params
+  return <CollectionDetail id={postId} slug={id} />
 }

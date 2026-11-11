@@ -3,7 +3,7 @@ import Link from 'next/link'
 import type { Collection } from '@common/collections'
 import { NavProgress } from '@/components/nav-progress'
 import { collectionThumbUrl } from '@/lib/images'
-import { collectionHref } from '@common/collections'
+import { collectionHref, collectionSlug } from '@common/collections'
 import { BLUR_DATA_URL } from '@/lib/misc'
 
 /**
@@ -45,7 +45,7 @@ function CollectionCard({ collection }: { collection: Collection }) {
 
   return (
     <Link
-      href={collectionHref(collection.id)}
+      href={collectionHref(collectionSlug(collection))}
       className="group block overflow-hidden rounded-lg border border-border bg-surface transition-colors hover:border-accent"
     >
       {/* The newest image on the shelf, derived rather than stored. Held to the top: most

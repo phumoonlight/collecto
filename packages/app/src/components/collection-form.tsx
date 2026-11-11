@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { BUTTON_SUBMIT_ON_SURFACE } from './buttons'
 import { FIELD } from './panel'
 
-export type CollectionInput = { name: string; mark: string }
+/** `refId` is the web address segment — `/collections/<refId>` — or '' for the id. */
+export type CollectionInput = { name: string; mark: string; refId: string }
 
 /**
- * What a shelf is — its mark and its name — as one form, for naming a new one and for
- * editing one. `onSubmit` answers with the refusal to show, or null once it has landed.
+ * What a shelf is — its mark, its name and its web address — as one form, for naming a new
+ * one and for editing one. `onSubmit` answers with the refusal to show, or null once it has
+ * landed.
  */
 export function CollectionForm({
   initial,
@@ -58,6 +60,24 @@ export function CollectionForm({
           />
         </label>
       </div>
+
+      <label className="flex flex-col gap-1 text-xs text-muted">
+        Address
+        <div className={`${FIELD} flex items-center gap-0.5 font-mono text-foreground`}>
+          <span className="text-muted">/collections/</span>
+          <input
+            value={input.refId}
+            onChange={(event) => setInput({ ...input, refId: event.target.value })}
+            placeholder="ukiyo-e-studies"
+            spellCheck={false}
+            className="min-w-0 flex-1 bg-transparent outline-none"
+          />
+        </div>
+        <span>
+          Optional: a–z, 0–9 and hyphens. Empty uses the collection&rsquo;s id. Changing it
+          breaks links to the old address.
+        </span>
+      </label>
 
       <div className="flex items-center gap-2 border-t border-border pt-3">
         {error && <p className="text-xs text-[#ff5d5f]">{error}</p>}

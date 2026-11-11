@@ -10,13 +10,13 @@ import { CollectionView } from './collection-view'
  */
 
 /** Which shelf was open. Survives a trip to Settings and back; a fact about a session. */
-let opened: number | null = null
+let opened: string | null = null
 
 export function Collections({ siteUrl }: { siteUrl: string }) {
   const [collections, setCollections] = useState<Collection[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [open, setOpen] = useState<number | null>(opened)
+  const [open, setOpen] = useState<string | null>(opened)
 
   /** `force` is 🔄 Refresh: the list is cached for a day, and that press means "ask again".
    *  Coming back from a shelf does not force it — every write there drops the cache. */
@@ -52,7 +52,7 @@ export function Collections({ siteUrl }: { siteUrl: string }) {
     }
   }, [])
 
-  const show = (id: number | null) => {
+  const show = (id: string | null) => {
     opened = id
     setOpen(id)
   }

@@ -112,52 +112,73 @@ pub async fn list_collections(force: Option<bool>) -> Result<Vec<Collection>, St
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CollectionInput {
     name: String,
     mark: String,
+    /// The web address segment; empty for none.
+    #[serde(default)]
+    ref_id: String,
 }
 
 fn bounded(input: CollectionInput) -> CollectionInput {
     CollectionInput {
         name: input.name.chars().take(200).collect(),
         mark: input.mark.chars().take(200).collect(),
+        ref_id: input.ref_id.chars().take(200).collect(),
+    }
+}
+
+/// A collection id from the window: a cuid2, or a refusal before it reaches a query.
+fn collection_id(id: String) -> Result<String, Value> {
+    if crate::names::looks_like_id(&id) {
+        Ok(id)
+    } else {
+        Err(json!({ "ok": false, "error": "No such collection." }))
     }
 }
 
 #[tauri::command]
 pub async fn create_collection(input: CollectionInput) -> Value {
     let input = bounded(input);
-    collections::create(input.name, input.mark).await
+    collections::create(input.name, input.mark, input.ref_id).await
 }
 
 #[tauri::command]
-pub async fn edit_collection(id: i32, input: CollectionInput) -> Value {
+pub async fn edit_collection(id: String, input: CollectionInput) -> Value {
     let input = bounded(input);
-    collections::edit(id, input.name, input.mark).await
+    match collection_id(id) {
+        Ok(id) => collections::edit(id, input.name, input.mark, input.ref_id).await,
+        Err(refused) => refused,
+    }
 }
 
 #[tauri::command]
-pub async fn delete_collection(id: i32) -> Value {
-    collections::delete(id).await
+pub async fn delete_collection(id: String) -> Value {
+    match collection_id(id) {
+        Ok(id) => collections::delete(id).await,
+        Err(refused) => refused,
+    }
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PostsQuery {
-    collection_id: i32,
+    collection_id: String,
     after: Option<i32>,
     per_page: Option<i64>,
 }
 
 #[tauri::command]
 pub async fn list_collection_posts(query: PostsQuery) -> Result<PostPage, String> {
-    collections::read_posts(query.collection_id, query.after, query.per_page).await
+    let id = collection_id(query.collection_id).map_err(|_| "No such collection.".to_string())?;
+    collections::read_posts(id, query.after, query.per_page).await
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UploadRequest {
-    collection_id: i32,
+    collection_id: String,
     path: String,
     source_url: String,
 }
@@ -165,7 +186,10 @@ pub struct UploadRequest {
 #[tauri::command]
 pub async fn upload_to_collection(request: UploadRequest) -> Value {
     let source: String = request.source_url.trim().chars().take(2000).collect();
-    collections::upload(request.collection_id, request.path, source).await
+    match collection_id(request.collection_id) {
+        Ok(id) => collections::upload(id, request.path, source).await,
+        Err(refused) => refused,
+    }
 }
 
 #[derive(Deserialize)]
@@ -182,7 +206,11 @@ pub async fn save_collection_post(request: SourceEdit) -> Value {
 }
 
 #[tauri::command]
-pub async fn move_collection_posts(ids: Vec<i32>, collection_id: i32) -> Value {
+pub async fn move_collection_posts(ids: Vec<i32>, collection_id: String) -> Value {
+    let collection_id = match self::collection_id(collection_id) {
+        Ok(id) => id,
+        Err(refused) => return refused,
+    };
     let mut ids: Vec<i32> = ids.into_iter().filter(|id| *id > 0).take(MAX_SELECTION).collect();
     ids.sort_unstable();
     ids.dedup();

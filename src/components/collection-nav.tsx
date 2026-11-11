@@ -34,11 +34,12 @@ const BUTTON = 'flex items-center justify-center text-lg hover:opacity-80'
  * sit in — is the same and is here for the same reasons.
  */
 export function CollectionNav({
-  collectionId,
+  slug,
   prevId,
   nextId,
 }: {
-  collectionId: number
+  /** The collection's address segment (`collectionSlug`). */
+  slug: string
   prevId: number | null
   nextId: number | null
 }) {
@@ -54,12 +55,12 @@ export function CollectionNav({
       if (id === null) return
 
       event.preventDefault()
-      startTransition(() => router.push(collectionPostHref(collectionId, id)))
+      startTransition(() => router.push(collectionPostHref(slug, id)))
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [collectionId, prevId, nextId, router])
+  }, [slug, prevId, nextId, router])
 
   if (!prevId && !nextId) return null
 
@@ -68,7 +69,7 @@ export function CollectionNav({
       {pending && <NavProgressBar />}
       {prevId && (
         <Link
-          href={collectionPostHref(collectionId, prevId)}
+          href={collectionPostHref(slug, prevId)}
           title="Newer image (←)"
           aria-label="Newer image"
           prefetch
@@ -80,7 +81,7 @@ export function CollectionNav({
       )}
       {nextId && (
         <Link
-          href={collectionPostHref(collectionId, nextId)}
+          href={collectionPostHref(slug, nextId)}
           title="Older image (→)"
           aria-label="Older image"
           prefetch

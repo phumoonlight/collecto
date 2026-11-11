@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { CollectionNav } from '@/components/collection-nav'
 import { CollectionViewCounter } from '@/components/collection-view-counter'
@@ -22,7 +22,7 @@ export async function collectionPostMetadata(id: string): Promise<Metadata> {
   const post = await getCollectionPost(postId)
   if (!post) return { title: 'Not found', robots: { index: false, follow: false } }
 
-  const canonical = collectionPostHref(post.collection_id, post.id)
+  const canonical = collectionPostHref(post.collection_slug, post.id)
   const collection = await getCollection(post.collection_id)
   const title = collection ? `${collection.name} — #${post.id}` : `Collection image #${post.id}`
   const description = `${post.width}×${post.height}`
@@ -45,7 +45,12 @@ export async function collectionPostMetadata(id: string): Promise<Metadata> {
   }
 }
 
-export async function CollectionDetail({ id }: { id: string }) {
+/**
+ * `slug` is the URL's collection segment. The row is the authority on which collection the
+ * image is in; a segment that is not that collection's current address — its id while it has
+ * a `ref_id`, an old address, another collection's — redirects to the canonical URL.
+ */
+export async function CollectionDetail({ id, slug }: { id: string; slug: string }) {
   if (!isDatabaseConfigured()) {
     return (
       <div className="mx-auto w-full max-w-5xl px-3 py-4">
@@ -59,6 +64,7 @@ export async function CollectionDetail({ id }: { id: string }) {
 
   const post = await getCollectionPost(postId)
   if (!post) notFound()
+  if (slug !== post.collection_slug) redirect(collectionPostHref(post.collection_slug, post.id))
 
   const [collection, { prevId, nextId }] = await Promise.all([
     getCollection(post.collection_id),
@@ -74,13 +80,13 @@ export async function CollectionDetail({ id }: { id: string }) {
           came back up for. The way back is the collection. */}
       <header className="sticky top-0 z-10 -mx-3 flex items-center gap-2 border-b border-border bg-background/90 px-3 py-2 backdrop-blur">
         <Link
-          href={collectionHref(post.collection_id)}
+          href={collectionHref(post.collection_slug)}
           className="min-w-0 truncate pr-1 text-lg font-bold tracking-tight hover:underline"
         >
           {collection.mark && <span className="mr-1.5">{collection.mark}</span>}
           {collection.name}
         </Link>
-        <CollectionNav collectionId={post.collection_id} prevId={prevId} nextId={nextId} />
+        <CollectionNav slug={post.collection_slug} prevId={prevId} nextId={nextId} />
       </header>
 
       <PostImage

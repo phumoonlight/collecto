@@ -105,7 +105,7 @@ where
 }
 
 /// One screenful of one shelf, keyed by everything that decides which rows come back.
-pub async fn posts<F, Fut>(collection_id: i32, after: Option<i32>, per_page: i64, read: F) -> Result<PostPage, String>
+pub async fn posts<F, Fut>(collection_id: &str, after: Option<i32>, per_page: i64, read: F) -> Result<PostPage, String>
 where
     F: FnOnce() -> Fut,
     Fut: std::future::Future<Output = Result<PostPage, String>>,

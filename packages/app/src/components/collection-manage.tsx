@@ -19,7 +19,7 @@ export function ManageBar({
   onClear,
   onMoved,
 }: {
-  collectionId: number
+  collectionId: string
   collections: Collection[]
   selected: number[]
   /** How many images are on screen — what Select all takes. */
@@ -29,7 +29,7 @@ export function ManageBar({
   onMoved: (moved: number) => void
 }) {
   const others = collections.filter((collection) => collection.id !== collectionId)
-  const [target, setTarget] = useState<number | ''>('')
+  const [target, setTarget] = useState<string>('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -68,9 +68,7 @@ export function ManageBar({
         <div className="ml-auto flex items-center gap-2">
           <select
             value={target}
-            onChange={(event) =>
-              setTarget(event.target.value === '' ? '' : Number(event.target.value))
-            }
+            onChange={(event) => setTarget(event.target.value)}
             aria-label="Move to collection"
             className={`${FIELD} bg-background`}
           >

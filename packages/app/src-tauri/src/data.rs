@@ -33,7 +33,7 @@ macro_rules! post_columns {
 macro_rules! shelf_select {
     () => {
         concat!(
-            "select c.id, c.name, c.mark, count(p.id)::int as post_count, ",
+            "select c.id, c.ref_id, c.name, c.mark, count(p.id)::int as post_count, ",
             "(array_agg(p.file_name order by p.id desc))[1] as cover_file_name, ",
             "(array_agg(p.file_ext order by p.id desc))[1] as cover_file_ext, ",
             iso!("c.updated_at"),
@@ -45,7 +45,10 @@ macro_rules! shelf_select {
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Collection {
-    pub id: i32,
+    /// A cuid2, made by the app when the collection is named.
+    pub id: String,
+    /// The web address segment, when set; the id is the address otherwise.
+    pub ref_id: Option<String>,
     pub name: String,
     pub mark: Option<String>,
     pub post_count: i32,
@@ -58,7 +61,7 @@ pub struct Collection {
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct CollectionPost {
     pub id: i32,
-    pub collection_id: i32,
+    pub collection_id: String,
     pub file_name: String,
     pub file_ext: String,
     /// Of the stored file, after lossless compression.
@@ -95,7 +98,7 @@ pub async fn list_collections(db: &PgPool) -> Result<Vec<Collection>, String> {
 /// an offset, so an image added mid-scroll does not slide the rows below it.
 pub async fn list_collection_posts(
     db: &PgPool,
-    collection_id: i32,
+    collection_id: &str,
     after: Option<i32>,
     per_page: i64,
 ) -> Result<PostPage, String> {
@@ -150,30 +153,57 @@ pub async fn find_posts_by_file_names(
     Ok(rows.into_iter().map(|(id, file, shelf)| (file, (id, shelf))).collect())
 }
 
-fn taken(name: &str) -> String {
-    format!("There is already a collection called {name}.")
+/// Which unique index a write ran into, in words: the name or the address.
+fn conflict(error: sqlx::Error, name: &str, ref_id: Option<&str>) -> String {
+    if !is_unique_violation(&error) {
+        return message(error);
+    }
+    let constraint = error.as_database_error().and_then(|e| e.constraint()).unwrap_or("");
+    match (constraint, ref_id) {
+        ("collections_ref_id_key", Some(ref_id)) => {
+            format!("Another collection already uses the address {ref_id}.")
+        }
+        _ => format!("There is already a collection called {name}."),
+    }
 }
 
-pub async fn create_collection(db: &PgPool, name: &str, mark: Option<&str>) -> Result<i32, String> {
-    sqlx::query_scalar::<_, i32>("insert into collections (name, mark) values ($1, $2) returning id")
+/// Names a new collection with a fresh cuid2 id, answering with that id.
+pub async fn create_collection(
+    db: &PgPool,
+    name: &str,
+    mark: Option<&str>,
+    ref_id: Option<&str>,
+) -> Result<String, String> {
+    let id = cuid2::create_id();
+    sqlx::query("insert into collections (id, name, mark, ref_id) values ($1, $2, $3, $4)")
+        .bind(&id)
         .bind(name)
         .bind(mark)
-        .fetch_one(db)
+        .bind(ref_id)
+        .execute(db)
         .await
-        .map_err(|e| if is_unique_violation(&e) { taken(name) } else { message(e) })
+        .map_err(|e| conflict(e, name, ref_id))?;
+    Ok(id)
 }
 
 /// A rename is a change to the shelf itself, so it moves to the top of the list.
-pub async fn update_collection(db: &PgPool, id: i32, name: &str, mark: Option<&str>) -> Result<(), String> {
+pub async fn update_collection(
+    db: &PgPool,
+    id: &str,
+    name: &str,
+    mark: Option<&str>,
+    ref_id: Option<&str>,
+) -> Result<(), String> {
     let updated = sqlx::query(
-        "update collections set name = $2, mark = $3, updated_at = now() where id = $1",
+        "update collections set name = $2, mark = $3, ref_id = $4, updated_at = now() where id = $1",
     )
     .bind(id)
     .bind(name)
     .bind(mark)
+    .bind(ref_id)
     .execute(db)
     .await
-    .map_err(|e| if is_unique_violation(&e) { taken(name) } else { message(e) })?;
+    .map_err(|e| conflict(e, name, ref_id))?;
     if updated.rows_affected() == 0 {
         return Err("No such collection.".into());
     }
@@ -182,7 +212,7 @@ pub async fn update_collection(db: &PgPool, id: i32, name: &str, mark: Option<&s
 
 /// Refuses a shelf that still holds anything. The missing `on delete cascade` is the real
 /// enforcement; the count is here so the refusal can say how many are in the way.
-pub async fn delete_collection(db: &PgPool, id: i32) -> Result<(), String> {
+pub async fn delete_collection(db: &PgPool, id: &str) -> Result<(), String> {
     let held: i64 = sqlx::query_scalar("select count(*) from collection_posts where collection_id = $1")
         .bind(id)
         .fetch_one(db)
@@ -204,7 +234,7 @@ pub async fn delete_collection(db: &PgPool, id: i32) -> Result<(), String> {
 }
 
 pub struct NewPost<'a> {
-    pub collection_id: i32,
+    pub collection_id: &'a str,
     pub file_name: &'a str,
     pub file_ext: &'a str,
     pub file_size: i32,
@@ -215,7 +245,7 @@ pub struct NewPost<'a> {
     pub source_url: &'a str,
 }
 
-async fn touch(tx: &mut sqlx::PgConnection, id: i32) -> Result<(), sqlx::Error> {
+async fn touch(tx: &mut sqlx::PgConnection, id: &str) -> Result<(), sqlx::Error> {
     sqlx::query("update collections set updated_at = now() where id = $1")
         .bind(id)
         .execute(tx)
@@ -270,15 +300,15 @@ pub async fn update_post_source(db: &PgPool, id: i32, source_url: &str) -> Resul
 }
 
 /// Deletes the row, touching its shelf, and answers with the shelf it was on.
-pub async fn delete_post_row(db: &PgPool, id: i32) -> Result<Option<i32>, String> {
+pub async fn delete_post_row(db: &PgPool, id: i32) -> Result<Option<String>, String> {
     let mut tx = db.begin().await.map_err(message)?;
-    let shelf: Option<i32> =
+    let shelf: Option<String> =
         sqlx::query_scalar("delete from collection_posts where id = $1 returning collection_id")
             .bind(id)
             .fetch_optional(&mut *tx)
             .await
             .map_err(message)?;
-    if let Some(shelf) = shelf {
+    if let Some(shelf) = &shelf {
         touch(&mut tx, shelf).await.map_err(message)?;
     }
     tx.commit().await.map_err(message)?;
@@ -287,12 +317,12 @@ pub async fn delete_post_row(db: &PgPool, id: i32) -> Result<Option<i32>, String
 
 /// Moves a selection onto one shelf, answering with how many moved. No object moves — the
 /// prefix is flat. An image already there is skipped rather than rewritten.
-pub async fn move_posts(db: &PgPool, ids: &[i32], collection_id: i32) -> Result<usize, String> {
+pub async fn move_posts(db: &PgPool, ids: &[i32], collection_id: &str) -> Result<usize, String> {
     if ids.is_empty() {
         return Ok(0);
     }
     let mut tx = db.begin().await.map_err(message)?;
-    let rows: Vec<(i32, i32)> = sqlx::query_as(
+    let rows: Vec<(i32, String)> = sqlx::query_as(
         "update collection_posts p set collection_id = $1
            from collection_posts old
           where old.id = p.id and p.id = any($2) and p.collection_id <> $1
@@ -305,7 +335,7 @@ pub async fn move_posts(db: &PgPool, ids: &[i32], collection_id: i32) -> Result<
     .map_err(message)?;
 
     if !rows.is_empty() {
-        let mut shelves: Vec<i32> = rows.iter().map(|(_, was)| *was).collect();
+        let mut shelves: Vec<&str> = rows.iter().map(|(_, was)| was.as_str()).collect();
         shelves.push(collection_id);
         shelves.sort_unstable();
         shelves.dedup();

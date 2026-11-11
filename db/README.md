@@ -42,8 +42,13 @@ app sends no named prepared statements.
 
 ## Adding a migration
 
-A new numbered file — `0002_whatever.sql` — never an edit to one already applied anywhere
+A new numbered file — `0003_whatever.sql` — never an edit to one already applied anywhere
 real. Each runs inside a transaction and is recorded in `_migrations`.
+
+| file | |
+|---|---|
+| `0001_baseline.sql` | `collections` and `collection_posts` |
+| `0002_collection_cuid_ref.sql` | `collections.id` becomes a cuid2 (existing rows get new ids, posts follow); adds `collections.ref_id` |
 
 ## Shape
 
@@ -51,6 +56,11 @@ real. Each runs inside a transaction and is recorded in `_migrations`.
 collections ───< collection_posts
 ```
 
+- **A collection's id is a cuid2** (`^[a-z][a-z0-9]{23}$`), made by the app; it never changes.
+- **`ref_id` is its web address** — `/collections/<ref_id>`, or `/collections/<id>` when unset.
+  Optional, unique, changeable; lowercase letters, digits and single hyphens, at most 64, and
+  never cuid2-shaped, so an address segment can't mean two collections. Changing it breaks
+  links to the old address.
 - **A collection cannot be deleted while it holds anything** — `collection_posts.collection_id`
   has no `on delete cascade`.
 - **An image lives on exactly one shelf** — `file_name` (the md5 of the uploaded bytes) is

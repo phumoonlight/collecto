@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { shelfTitle } from '@common/collections'
+import { collectionSlug, shelfTitle } from '@common/collections'
 import { api, type Collection } from '../api'
 import { fullImageUrl } from '../image-url'
 import { BUTTON, buttonToggle } from './buttons'
@@ -31,8 +31,8 @@ export function ShelfList({
   /** Why the board could not be read, if it could not. */
   error: string | null
   onRefresh: () => void
-  onOpen: (id: number) => void
-  onCreated: (id: number) => void
+  onOpen: (id: string) => void
+  onCreated: (id: string) => void
 }) {
   const [naming, setNaming] = useState(false)
   const closeNaming = useCallback(() => setNaming(false), [])
@@ -47,7 +47,8 @@ export function ShelfList({
     setLimit(PAGE)
   }
 
-  // The mark and the id are searched with the name: both are how a shelf gets referred to.
+  // The mark, the address and the id are searched with the name: all are how a shelf gets
+  // referred to.
   const needle = query.trim().toLowerCase()
   const shown = useMemo(
     () =>
@@ -56,7 +57,8 @@ export function ShelfList({
         : collections.filter(
             (collection) =>
               shelfTitle(collection).toLowerCase().includes(needle) ||
-              `#${collection.id}` === needle
+              collection.id === needle ||
+              (collection.ref_id?.includes(needle) ?? false)
           ),
     [collections, needle]
   )
@@ -129,7 +131,7 @@ export function ShelfList({
       {naming && (
         <Modal title="New collection" onClose={closeNaming}>
           <CollectionForm
-            initial={{ name: '', mark: '' }}
+            initial={{ name: '', mark: '', refId: '' }}
             submitLabel="Create"
             onSubmit={async (input) => {
               const result = await api.createCollection(input)
@@ -217,7 +219,7 @@ function ShelfCard({ collection, onOpen }: { collection: Collection; onOpen: () 
       <span className="flex flex-col gap-0.5 px-1.5 py-1">
         <span className="line-clamp-2 text-xs font-semibold">{shelfTitle(collection)}</span>
         <span className="text-[11px] text-muted">
-          #{collection.id} · {images}
+          /{collectionSlug(collection)} · {images}
         </span>
       </span>
     </button>

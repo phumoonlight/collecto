@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { collectionHref, shelfTitle } from '@common/collections'
+import { collectionHref, collectionSlug, shelfTitle } from '@common/collections'
 import { api, failure, type Collection, type CollectionPost } from '../api'
 import { BUTTON, BUTTON_SM, buttonToggle } from './buttons'
 import { Modal } from './modal'
@@ -26,16 +26,18 @@ export function CollectionView({
   siteUrl,
   onBack,
 }: {
-  collectionId: number
+  collectionId: string
   collection: Collection | undefined
   collections: Collection[]
   siteUrl: string
   onBack: () => void
 }) {
   // What an edit here stored, over the row the list was holding.
-  const [edited, setEdited] = useState<Pick<Collection, 'name' | 'mark'> | null>(null)
+  const [edited, setEdited] = useState<Pick<Collection, 'name' | 'mark' | 'ref_id'> | null>(null)
   const shelf = edited ?? collection
   const name = shelf?.name ?? 'Collection'
+  // Where the collection is on the website: its `ref_id`, or its id.
+  const slug = collectionSlug({ id: collectionId, ref_id: shelf?.ref_id ?? null })
   const [posts, setPosts] = useState<CollectionPost[]>([])
   const [hasMore, setHasMore] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -140,7 +142,9 @@ export function CollectionView({
             <span aria-hidden>⬅️</span> Collections
           </button>
           <h1 className="text-lg font-bold tracking-tight">{shelf ? shelfTitle(shelf) : name}</h1>
-          <span className="text-xs text-muted">#{collectionId}</span>
+          <span className="font-mono text-xs text-muted" title={`id ${collectionId}`}>
+            /{slug}
+          </span>
           <span className="text-xs text-muted">
             {loading
               ? 'reading…'
@@ -181,7 +185,7 @@ export function CollectionView({
             {siteUrl && (
               <button
                 type="button"
-                onClick={() => void api.openExternal(`${siteUrl}${collectionHref(collectionId)}`)}
+                onClick={() => void api.openExternal(`${siteUrl}${collectionHref(slug)}`)}
                 title="Open this collection in your browser"
                 className={BUTTON}
               >
@@ -199,12 +203,12 @@ export function CollectionView({
         {renaming && (
           <Modal title="Edit collection" onClose={closeRenaming}>
             <CollectionForm
-              initial={{ name, mark: shelf?.mark ?? '' }}
+              initial={{ name, mark: shelf?.mark ?? '', refId: shelf?.ref_id ?? '' }}
               submitLabel="Save"
               onSubmit={async (input) => {
                 const result = await api.editCollection(collectionId, input)
                 if (!result.ok) return result.error
-                setEdited({ name: result.name, mark: result.mark })
+                setEdited({ name: result.name, mark: result.mark, ref_id: result.ref_id })
                 setRenaming(false)
                 return null
               }}
@@ -301,6 +305,7 @@ export function CollectionView({
             // Keyed, so another tile mounts a fresh panel seeded from its own row.
             key={editingPost.id}
             post={editingPost}
+            slug={slug}
             siteUrl={siteUrl}
             viewing={viewing}
             onViewing={setViewing}
