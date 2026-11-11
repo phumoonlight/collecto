@@ -54,7 +54,7 @@ other than the view counter belongs in the app instead — the database will ref
 `NEXT_PUBLIC_CDN_URL`, `NEXT_PUBLIC_SITE_URL` and `R2_*` from `.env` and prints
 `collecto2.<salt>.<nonce>.<ciphertext+tag>`: JSON sealed with AES-256-GCM under
 scrypt(passphrase; N=2^17, r=8, p=1), prefix as AAD, passphrase trimmed + NFC, ≥12 chars
-(Enter generates six words; a non-empty `APP_CODE_GEN_PASSPHRASE` skips the prompt). The
+(Enter generates six words; a non-empty `DESKTOP_CODE_GEN_PASSPHRASE` skips the prompt). The
 prompt uses one raw-mode stdin reader for all prompts — pausing stdin between prompts made
 Node exit on Windows. The app decodes it in `setup.rs` (`set_connection` command, off
 the async runtime), checks the board answers (`db::check`), then stores the JSON in the OS
