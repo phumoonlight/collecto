@@ -25,7 +25,7 @@ export function db(): Sql {
   return pool
 }
 
-/** True once `.env.local` (or Vercel) holds a real connection string. */
+/** True once `.env` (or Vercel) holds a real connection string. */
 export function isDatabaseConfigured(): boolean {
   const url = databaseUrl()
   return Boolean(url && !url.includes('YOUR_'))

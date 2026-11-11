@@ -46,7 +46,7 @@ format. Limits are 50MB and 100MP per file.
 
 ```
 npm install
-cp .env.example .env.local     # fill in the Neon and R2 values
+cp .env.example .env           # fill in the Neon and R2 values (.env.local overrides, if present)
 npm run db:push                # create the tables and apply the grants
 ```
 
@@ -71,7 +71,7 @@ npm run app:build    # an NSIS installer under packages/app/src-tauri/target/rel
 npm run app:test     # the Rust tests: compression, signing, names
 ```
 
-Both compile in seven values from `.env.local` — `DATABASE_URL_APP`, `NEXT_PUBLIC_CDN_URL`,
+Both compile in seven values from `.env` — `DATABASE_URL_APP`, `NEXT_PUBLIC_CDN_URL`,
 `NEXT_PUBLIC_SITE_URL` and the four `R2_*` (see `src-tauri/build.rs`). A debug build without
 them opens and says it is not set up; a release build refuses to compile. **Anyone with the
 installer can write to the board** — treat it like the key it contains.

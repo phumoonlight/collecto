@@ -75,7 +75,7 @@ export function Settings({ status, onChanged }: { status: AppStatus; onChanged: 
           <p className="border border-red-500/30 bg-red-500/15 px-3 py-2 text-sm text-red-400">
             This build has no board baked into it, so there is nothing to upload to. Rebuild it with
             DATABASE_URL_APP, NEXT_PUBLIC_CDN_URL, NEXT_PUBLIC_SITE_URL and the four R2 values set
-            in <code>.env.local</code>.
+            in <code>.env</code>.
           </p>
         )}
 

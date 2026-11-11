@@ -3,7 +3,7 @@
 //! settings screen and never written to disk by the app.
 //!
 //! Each value is read from the process environment first, then from the repo root's
-//! `.env.local`. A debug build without them still compiles — the window says it is not set
+//! `.env.local`, then `.env` — the order Next.js gives them. A debug build without them still compiles — the window says it is not set
 //! up — but a release build refuses, so no installer can ship pointing at nothing.
 
 use std::collections::HashMap;
@@ -37,15 +37,20 @@ fn parse_env_file(text: &str) -> HashMap<String, String> {
 }
 
 fn main() {
-    let env_file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../.env.local");
-    println!("cargo:rerun-if-changed={}", env_file.display());
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
     for key in KEYS {
         println!("cargo:rerun-if-env-changed={key}");
     }
 
-    let file = std::fs::read_to_string(&env_file)
-        .map(|text| parse_env_file(&text))
-        .unwrap_or_default();
+    // `.env` first, then `.env.local` over it, so a local override wins.
+    let mut file = HashMap::new();
+    for name in [".env", ".env.local"] {
+        let path = root.join(name);
+        println!("cargo:rerun-if-changed={}", path.display());
+        if let Ok(text) = std::fs::read_to_string(&path) {
+            file.extend(parse_env_file(&text));
+        }
+    }
 
     let mut missing = Vec::new();
     for key in KEYS {
@@ -64,7 +69,7 @@ fn main() {
     if !missing.is_empty() {
         let list = missing.join(", ");
         if std::env::var("PROFILE").as_deref() == Ok("release") {
-            panic!("Refusing to build a release without {list} — set them in .env.local (see .env.example).");
+            panic!("Refusing to build a release without {list} — set them in .env (see .env.example).");
         }
         println!("cargo:warning=Not set: {list}. The app will open, but cannot reach a board.");
     }

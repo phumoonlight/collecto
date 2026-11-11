@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Collecto setup</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f8fa;
+        --fg: #1b1f27;
+        --muted: #5b6372;
+        --surface: #ffffff;
+        --border: #dde1e8;
+        --accent: #2563eb;
+        --code-bg: #eef1f5;
+        --warn-bg: #fff6e0;
+        --warn-border: #e9c46a;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          color-scheme: dark;
+          --bg: #0d0f14;
+          --fg: #e5e7eb;
+          --muted: #9ca3af;
+          --surface: #161a22;
+          --border: #262b36;
+          --accent: #60a5fa;
+          --code-bg: #1d222c;
+          --warn-bg: #2a2412;
+          --warn-border: #8a6d1f;
+        }
+      }
+      :root[data-theme='dark'] {
+        color-scheme: dark;
+        --bg: #0d0f14;
+        --fg: #e5e7eb;
+        --muted: #9ca3af;
+        --surface: #161a22;
+        --border: #262b36;
+        --accent: #60a5fa;
+        --code-bg: #1d222c;
+        --warn-bg: #2a2412;
+        --warn-border: #8a6d1f;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      main { max-width: 820px; margin: 0 auto; padding: 32px 16px 96px; }
+      h1 { font-size: 1.9rem; margin: 0 0 4px; }
+      h2 {
+        font-size: 1.3rem;
+        margin: 44px 0 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+      }
+      h3 { font-size: 1.05rem; margin: 24px 0 8px; }
+      p, li { color: var(--fg); }
+      .lead { color: var(--muted); margin-top: 0; }
+      a { color: var(--accent); }
+      code {
+        font: 0.88em ui-monospace, 'Cascadia Code', Consolas, monospace;
+        background: var(--code-bg);
+        padding: 1px 5px;
+        border-radius: 4px;
+      }
+      pre {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 14px;
+        overflow-x: auto;
+        font: 0.86rem/1.55 ui-monospace, 'Cascadia Code', Consolas, monospace;
+      }
+      pre code { background: none; padding: 0; }
+      table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.92rem; }
+      th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+      th { color: var(--muted); font-weight: 600; }
+      .table-wrap { overflow-x: auto; }
+      .note {
+        background: var(--warn-bg);
+        border: 1px solid var(--warn-border);
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin: 14px 0;
+      }
+      nav.toc {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 18px;
+        margin: 20px 0;
+      }
+      nav.toc ol { margin: 0; padding-left: 20px; }
+      .step { counter-increment: step; }
+      ol.steps > li { margin-bottom: 8px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Collecto setup</h1>
+      <p class="lead">
+        From a fresh clone to a running website and app: accounts, environment values, database,
+        local development, deployment and building the installer.
+      </p>
+
+      <nav class="toc" aria-label="Contents">
+        <ol>
+          <li><a href="#overview">What you are setting up</a></li>
+          <li><a href="#tools">Tools to install</a></li>
+          <li><a href="#neon">Neon database</a></li>
+          <li><a href="#r2">Cloudflare R2 bucket</a></li>
+          <li><a href="#env">.env</a></li>
+          <li><a href="#db">Create the tables</a></li>
+          <li><a href="#web">Run the website</a></li>
+          <li><a href="#app">Run and build the app</a></li>
+          <li><a href="#vercel">Deploy the website to Vercel</a></li>
+          <li><a href="#trouble">Troubleshooting</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="overview">1. What you are setting up</h2>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Piece</th><th>Where</th><th>Needs</th></tr>
+          <tr>
+            <td>Website</td>
+            <td><code>src/</code> — Next.js on Vercel</td>
+            <td>A read-only database login and the bucket's public URL</td>
+          </tr>
+          <tr>
+            <td>App</td>
+            <td><code>packages/app/</code> — Tauri (Rust + React)</td>
+            <td>A writing database login and the bucket's write key, compiled into the build</td>
+          </tr>
+          <tr>
+            <td>Database</td>
+            <td>Neon Postgres — its own project, separate from booru</td>
+            <td>Three logins: owner, <code>collecto_app</code>, <code>collecto_web</code></td>
+          </tr>
+          <tr>
+            <td>Images</td>
+            <td>One Cloudflare R2 bucket, public-read</td>
+            <td>An API token for the app, a public domain for everyone</td>
+          </tr>
+        </table>
+      </div>
+
+      <h2 id="tools">2. Tools to install</h2>
+      <ul>
+        <li><strong>Node.js 24 or later</strong> (npm 11 comes with it).</li>
+        <li>
+          <strong>Rust</strong>, stable, via <a href="https://rustup.rs">rustup</a>. On Windows use
+          the MSVC toolchain, which needs <strong>Visual Studio Build Tools</strong> with the
+          “Desktop development with C++” workload.
+        </li>
+        <li>
+          <strong>WebView2</strong> — already on Windows 11. Only needed for the app.
+        </li>
+        <li>Git.</li>
+      </ul>
+      <p>No CMake or NASM is needed; the dependencies are chosen to avoid them.</p>
+      <pre><code>git clone https://github.com/phumoonlight/collecto.git
+cd collecto
+npm install</code></pre>
+
+      <h2 id="neon">3. Neon database</h2>
+      <ol class="steps">
+        <li>
+          Create a new project at <a href="https://console.neon.tech">console.neon.tech</a>. It
+          comes with an owner role <code>neondb_owner</code> — that owner is your
+          <code>DATABASE_URL_OWNER</code>.
+        </li>
+        <li>
+          Create the database Collecto uses, <strong><code>app</code></strong>, owned by
+          <code>neondb_owner</code>: in the console under <strong>Databases → New database</strong>,
+          or in the SQL Editor with <code>create database app owner neondb_owner;</code>. The
+          default <code>neondb</code> is left unused.
+        </li>
+        <li>
+          Open the <strong>SQL Editor</strong> and create the other two roles there, with long
+          random passwords (roles belong to the branch, not to one database, so either database
+          can be selected):
+          <pre><code>create role collecto_app login password 'a long random string';
+create role collecto_web login password 'a different long random string';</code></pre>
+        </li>
+        <li>
+          From <strong>Connect</strong>, pick database <code>app</code> and copy the connection
+          strings — every URL must end in <code>/app?sslmode=require…</code>, not
+          <code>/neondb</code>. Neon offers a <em>pooled</em> host (contains <code>-pooler</code>)
+          and a <em>direct</em> host. Swap in each role's user name and password.
+        </li>
+      </ol>
+      <div class="note">
+        <strong>Do not use the console's “Add role” button.</strong> A console-made role is a member
+        of <code>neon_superuser</code>, which overrides every grant — <code>collecto_web</code> could
+        then write anything — and the owner cannot revoke it. If you did, <code>drop role</code> and
+        make it again with SQL.
+      </div>
+
+      <h2 id="r2">4. Cloudflare R2 bucket</h2>
+      <ol class="steps">
+        <li>In the Cloudflare dashboard, open <strong>R2</strong> and create a bucket, e.g. <code>collecto</code>.</li>
+        <li>
+          Make it publicly readable: under the bucket's <strong>Settings → Public access</strong>,
+          connect a <strong>custom domain</strong> (e.g. <code>img.example.com</code>), or enable the
+          <code>r2.dev</code> URL for testing. That origin is <code>NEXT_PUBLIC_CDN_URL</code>.
+        </li>
+        <li>
+          Create an API token under <strong>R2 → Manage API tokens</strong> with
+          <strong>Object Read &amp; Write</strong>, limited to this bucket. Note the
+          <strong>Access Key ID</strong> and <strong>Secret Access Key</strong> — the secret is shown
+          once.
+        </li>
+        <li>Your <strong>Account ID</strong> is on the R2 overview page.</li>
+      </ol>
+      <p>
+        The app writes <code>collections/posts/&lt;md5&gt;.&lt;ext&gt;</code> and
+        <code>collections/thumbs/&lt;md5&gt;.&lt;ext&gt;</code>, each with a one-year immutable
+        cache header.
+      </p>
+
+      <h2 id="env">5. <code>.env</code></h2>
+      <p>
+        Copy the template and fill it in. It is git-ignored. An optional <code>.env.local</code>
+        beside it overrides any value in <code>.env</code> — for the website, the migration runner
+        and the app build alike.
+      </p>
+      <pre><code>cp .env.example .env</code></pre>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Variable</th><th>Value</th><th>Used by</th></tr>
+          <tr>
+            <td><code>DATABASE_URL</code></td>
+            <td><code>collecto_web</code> on the <strong>pooled</strong> host</td>
+            <td>website</td>
+          </tr>
+          <tr>
+            <td><code>DATABASE_URL_APP</code></td>
+            <td><code>collecto_app</code>, direct host (pooled also works)</td>
+            <td>app build</td>
+          </tr>
+          <tr>
+            <td><code>DATABASE_URL_OWNER</code></td>
+            <td><code>neondb_owner</code></td>
+            <td>migrations only</td>
+          </tr>
+          <tr>
+            <td><code>NEXT_PUBLIC_CDN_URL</code></td>
+            <td>bucket's public origin, no trailing slash</td>
+            <td>website, app</td>
+          </tr>
+          <tr>
+            <td><code>R2_ACCOUNT_ID</code>, <code>R2_ACCESS_KEY_ID</code>,<br /><code>R2_SECRET_ACCESS_KEY</code>, <code>R2_BUCKET</code></td>
+            <td>from step 4</td>
+            <td>app build</td>
+          </tr>
+          <tr>
+            <td><code>NEXT_PUBLIC_SITE_URL</code></td>
+            <td>the website's origin, e.g. <code>https://collecto.example.com</code></td>
+            <td>website (optional), app</td>
+          </tr>
+          <tr>
+            <td><code>NEXT_PUBLIC_SITE_NAME</code></td>
+            <td>display name, default <code>Collecto</code></td>
+            <td>website</td>
+          </tr>
+        </table>
+      </div>
+      <p>
+        Neon's strings may end in <code>&amp;channel_binding=require</code>; that is fine for both
+        sides. Keep <code>sslmode=require</code>.
+      </p>
+
+      <h2 id="db">6. Create the tables</h2>
+      <pre><code>npm run db:push      # lists pending migrations, asks, applies, then applies the grants
+npm run db:list      # what is applied and pending</code></pre>
+      <p>
+        Run <code>db:push</code> again whenever you recreate a role — it re-applies
+        <code>db/grants.sql</code> every time, even with no new migrations. If it says a role
+        “does not exist — skipping its grants”, step 3.2 was missed.
+      </p>
+
+      <h2 id="web">7. Run the website</h2>
+      <pre><code>npm run dev          # http://localhost:3000
+npm run build        # production build
+npm run lint
+npm run typecheck    # run `npx next typegen` first on a fresh checkout</code></pre>
+      <p>
+        Without <code>DATABASE_URL</code> every page shows a “database is not configured” notice
+        instead of failing. A new board is empty — the collection list only shows collections that
+        hold images, so add some with the app first.
+      </p>
+
+      <h2 id="app">8. Run and build the app</h2>
+      <pre><code>npm run app:dev      # the window, with hot reload
+npm run app:test     # Rust tests
+npm run app:build    # release build + NSIS installer</code></pre>
+      <ul>
+        <li>
+          The board's values are <strong>compiled in</strong> from <code>.env</code> (or the
+          process environment) by <code>packages/app/src-tauri/build.rs</code>. After changing
+          them, rebuild.
+        </li>
+        <li>
+          A debug build without them still opens, on the Settings screen saying it is not set up.
+          A release build <strong>refuses to compile</strong> and names what is missing.
+        </li>
+        <li>
+          The installer lands in
+          <code>packages/app/src-tauri/target/release/bundle/nsis/</code>.
+        </li>
+        <li>
+          Preferences live in <code>save.json</code> (Settings → Open data folder); the cache and
+          log in <code>app-cache/</code>. Debug builds keep their own copies under a
+          <code>dev</code> folder.
+        </li>
+      </ul>
+      <div class="note">
+        <strong>The installer contains the writing database login and the bucket key.</strong>
+        Anyone who has it can change the board. Share it only with people you would give those
+        credentials to. To revoke, change the <code>collecto_app</code> password and rotate the R2
+        token, then rebuild.
+      </div>
+
+      <h2 id="vercel">9. Deploy the website to Vercel</h2>
+      <ol class="steps">
+        <li>Import the repository in Vercel. Framework: Next.js; root directory: the repo root.</li>
+        <li>
+          Set environment variables: <code>DATABASE_URL</code> (pooled, <code>collecto_web</code>),
+          <code>NEXT_PUBLIC_CDN_URL</code>, <code>NEXT_PUBLIC_SITE_URL</code>, and optionally
+          <code>NEXT_PUBLIC_SITE_NAME</code>.
+        </li>
+        <li>
+          <strong>Do not</strong> add <code>DATABASE_URL_APP</code>, <code>DATABASE_URL_OWNER</code>
+          or any <code>R2_*</code> — the website never writes.
+        </li>
+        <li>Node.js 24 is required (<code>engines</code> in <code>package.json</code>). The region is <code>sin1</code> (<code>vercel.json</code>).</li>
+        <li>Optionally enable Web Analytics and Speed Insights; both are already wired in.</li>
+      </ol>
+
+      <h2 id="trouble">10. Troubleshooting</h2>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Symptom</th><th>Cause and fix</th></tr>
+          <tr>
+            <td><code>DATABASE_URL_OWNER is not set</code></td>
+            <td><code>.env</code> is missing or not at the repo root.</td>
+          </tr>
+          <tr>
+            <td>Website gets <code>permission denied</code></td>
+            <td>Grants not applied to <code>collecto_web</code> — run <code>npm run db:push</code>.</td>
+          </tr>
+          <tr>
+            <td>Website can write tables it should not</td>
+            <td>The role was made with the console button. Drop it, recreate with SQL, <code>db:push</code>.</td>
+          </tr>
+          <tr>
+            <td>App opens on Settings: “no board baked into it”</td>
+            <td>Values were missing at build time. Fill <code>.env</code>, rebuild.</td>
+          </tr>
+          <tr>
+            <td>Upload fails with <code>403 SignatureDoesNotMatch</code> / <code>InvalidAccessKeyId</code></td>
+            <td>Wrong <code>R2_*</code> values, or a token not scoped to this bucket.</td>
+          </tr>
+          <tr>
+            <td>Images upload but don't show</td>
+            <td>The bucket has no public access, or <code>NEXT_PUBLIC_CDN_URL</code> points elsewhere.</td>
+          </tr>
+          <tr>
+            <td>“Could not reach the database (timed out)”</td>
+            <td>No network, or a suspended Neon compute still waking up — try again.</td>
+          </tr>
+          <tr>
+            <td>Rust build fails linking on Windows</td>
+            <td>Visual Studio Build Tools with the C++ workload is missing.</td>
+          </tr>
+          <tr>
+            <td><code>npm install</code> warns about install scripts</td>
+            <td>npm 11 blocks unlisted scripts; approve the package in <code>allowScripts</code> in <code>package.json</code>.</td>
+          </tr>
+        </table>
+      </div>
+    </main>
+  </body>
+</html>

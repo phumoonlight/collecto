@@ -8,7 +8,7 @@ truth, applied by `scripts/migrate.mjs`; a dashboard edit is never the answer.
 | `npm run db:push` | list what the database has not seen, ask, apply it, then re-apply `grants.sql`. `--yes` skips the question |
 | `npm run db:list` | what is applied and what is pending |
 
-Both read `DATABASE_URL_OWNER` from `.env.local`.
+Both read `DATABASE_URL_OWNER` from `.env` (`.env.local` overrides it, if present).
 
 ## The three roles
 
@@ -31,7 +31,7 @@ also what you run after recreating a role.
 
 | role | held by | may |
 |---|---|---|
-| `neondb_owner` | `.env.local`, the migration runner only | everything, DDL included |
+| `neondb_owner` | `.env`, the migration runner only | everything, DDL included |
 | `collecto_app` | compiled into the app (`DATABASE_URL_APP`) | read and write every row; **no** create, alter or drop |
 | `collecto_web` | Vercel (`DATABASE_URL`) | read both tables; `update (view_count) on collection_posts`, and nothing else |
 
