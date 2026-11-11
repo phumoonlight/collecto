@@ -44,14 +44,12 @@ app sends no named prepared statements.
 
 ## Adding a migration
 
-A new numbered file — `0004_whatever.sql` — never an edit to one already applied anywhere
+A new numbered file — `0002_whatever.sql` — never an edit to one already applied anywhere
 real. Each runs inside a transaction and is recorded in `_migrations`.
 
 | file | |
 |---|---|
-| `0001_baseline.sql` | `collections` and `collection_posts` |
-| `0002_collection_cuid_ref.sql` | `collections.id` becomes a cuid2 (existing rows get new ids, posts follow); adds `collections.ref_id` |
-| `0003_ref_id_underscore.sql` | `ref_id` may use `_` as well as `-` between its runs |
+| `0001_baseline.sql` | `collections` (cuid2 `id`, optional `ref_id`) and `collection_posts` |
 
 ## Shape
 

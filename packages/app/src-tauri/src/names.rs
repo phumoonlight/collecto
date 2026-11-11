@@ -48,7 +48,7 @@ pub fn looks_like_id(value: &str) -> bool {
 }
 
 /// The rule a stored `ref_id` follows, spelled again as the check constraint in
-/// `db/migrations/0003_ref_id_underscore.sql`: runs of a–z/0–9 joined by single `_` or `-`, at
+/// `db/migrations/0001_baseline.sql`: runs of a–z/0–9 joined by single `_` or `-`, at
 /// most 64, and never a cuid2's shape — so a URL segment can't mean two collections.
 fn valid_ref_id(ref_id: &str) -> bool {
     ref_id.len() <= REF_ID_MAX
