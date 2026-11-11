@@ -40,42 +40,54 @@ struct Dirs {
 
 static DIRS: OnceLock<Dirs> = OnceLock::new();
 
-/// Called once at startup. **Everything lives in one folder** — the app's local data folder
-/// (`%LOCALAPPDATA%\dev.collecto.manager` on Windows): `save.json` at its top, `app-cache/`
-/// beside it. Nothing goes to Roaming; a roaming profile is not something this app is used
-/// with. A debug build keeps its own `dev` subfolder, so working on the app never disturbs the
-/// preferences, cache and log of the copy you use.
+/// The identifier earlier builds had (`tauri.conf.json`), and so the name of their folders.
+const OLD_IDENTIFIER: &str = "dev.collecto.manager";
+
+/// Called once at startup. **Everything lives in one folder** — the app's local data folder,
+/// named after the bundle identifier (`%LOCALAPPDATA%\app.phumoonlight.collecto` on Windows):
+/// `save.json` at its top, `app-cache/` beside it. Nothing goes to Roaming; a roaming profile is
+/// not something this app is used with. A debug build keeps its own `dev` subfolder, so working
+/// on the app never disturbs the preferences, cache and log of the copy you use.
 pub fn init(app: &AppHandle) -> tauri::Result<()> {
     let flavour = |base: PathBuf| if cfg!(debug_assertions) { base.join("dev") } else { base };
     let config = flavour(app.path().app_local_data_dir()?);
     let cache = config.join("app-cache");
+
+    // Before anything is created here, so an older build's cache can be moved in whole.
+    for root in [app.path().local_data_dir()?, app.path().config_dir()?] {
+        let old = root.join(OLD_IDENTIFIER);
+        move_legacy(&flavour(old.clone()), &config);
+        // The old identifier's WebView data sits at its root whichever build made it — a
+        // browser cache nothing reads any more. The root itself goes only once it is empty,
+        // so a debug build never takes a release build's files, or the reverse.
+        let _ = std::fs::remove_dir_all(old.join("EBWebView"));
+        let _ = std::fs::remove_dir(&old);
+    }
+
     let _ = std::fs::create_dir_all(&cache);
-    move_from_roaming(&flavour(app.path().app_config_dir()?), &config);
     let _ = DIRS.set(Dirs { config, cache });
     Ok(())
 }
 
-/// Earlier builds kept `save.json` in the Roaming folder. It is moved into the local one once,
-/// unless a local one already exists, and the Roaming folders are removed when that leaves
-/// them empty — `remove_dir` refuses a folder with anything else in it, such as another
-/// build's preferences.
-fn move_from_roaming(old: &Path, new: &Path) {
-    if old == new {
+/// Moves what an earlier build left in `old` — under the old identifier, Local or Roaming —
+/// into `new`: `save.json` and `app-cache/`, each only if `new` does not have one yet. Nothing
+/// is deleted here: an item that could not move, or that `new` already had, stays where it is,
+/// and the old folder is removed by the caller only once it is empty.
+fn move_legacy(old: &Path, new: &Path) {
+    if old == new || !old.is_dir() {
         return;
     }
-    let (from, to) = (old.join("save.json"), new.join("save.json"));
-    if from.exists() && !to.exists() {
-        let moved = std::fs::rename(&from, &to)
-            .or_else(|_| std::fs::copy(&from, &to).and_then(|_| std::fs::remove_file(&from)));
-        if let Err(error) = moved {
-            eprintln!("Could not move save.json out of Roaming: {error}");
-            return;
+    let _ = std::fs::create_dir_all(new);
+    for name in ["save.json", "app-cache"] {
+        let (from, to) = (old.join(name), new.join(name));
+        if from.exists() && !to.exists() {
+            if let Err(error) = std::fs::rename(&from, &to) {
+                eprintln!("Could not move {} to {}: {error}", from.display(), to.display());
+            }
         }
     }
+    // Empty now unless something stayed behind.
     let _ = std::fs::remove_dir(old);
-    if let Some(parent) = old.parent().filter(|_| cfg!(debug_assertions)) {
-        let _ = std::fs::remove_dir(parent);
-    }
 }
 
 pub fn config_dir() -> PathBuf {
