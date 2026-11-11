@@ -8,7 +8,7 @@ manages them.
 | `src/` | **the website** | Next.js 16 on Vercel. The newest images, the collection list, one collection, one image. Display only — it reads, and counts views |
 | `packages/app` | **the app** | Tauri 2: a Rust backend with a React window. Names and edits collections, uploads (with lossless compression), moves and deletes images; caches what it reads; logs what it writes |
 | `packages/common` | what both compile | The row types, the website's addresses, the bucket's paths — reached as `@common/*` |
-| `db/` | the schema | Two tables on Neon, applied by `scripts/migrate.mjs` |
+| `db/` | the schema | Two tables on Neon, applied by `scripts/migrate.mts` |
 
 It is [booru](../booru) with everything but the shelves taken out — no ratings, no AI/R-18
 filter, no tags, no artists, no maintenance switch — and an app rewritten in Rust.

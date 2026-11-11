@@ -277,7 +277,14 @@ create role collecto_web login password 'a different long random string';</code>
 
       <h2 id="db">6. Create the tables</h2>
       <pre><code>npm run db:push      # lists pending migrations, asks, applies, then applies the grants
-npm run db:list      # what is applied and pending</code></pre>
+npm run db:list      # what is applied and pending
+npm run db:reset     # start over: drops every table, re-applies everything</code></pre>
+      <p>
+        <code>db:reset</code> deletes every collection and image row. It lists what it will drop and
+        asks you to type the database name (<code>app</code>) before doing anything. Images already
+        uploaded stay in the bucket as orphans — empty the bucket's <code>collections/</code> prefix
+        in the Cloudflare dashboard if you want a truly fresh start.
+      </p>
       <p>
         Run <code>db:push</code> again whenever you recreate a role — it re-applies
         <code>db/grants.sql</code> every time, even with no new migrations. If it says a role

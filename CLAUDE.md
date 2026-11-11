@@ -37,6 +37,7 @@ cargo clippy --manifest-path packages/app/src-tauri/Cargo.toml
 
 npm run db:push          # apply pending migrations (asks; --yes to skip) + re-apply grants
 npm run db:list
+npm run db:reset         # drop every table + re-apply; asks for the database name typed out
 ```
 
 There are no JS tests; the Rust tests cover compression, SigV4 signing, names/sources and time.
@@ -142,6 +143,8 @@ Bash command whose text mentions them — pass commit messages that name them vi
 ## Conventions
 
 - Prettier: no semicolons, single quotes, 100 cols, trailing commas es5.
+- `scripts/*.mts` are TypeScript run by Node's type stripping (no build step): only erasable
+  syntax — no enums, namespaces or parameter properties. Root `tsc` type-checks them.
 - TypeScript is pinned below 6.1 because `typescript-eslint` doesn't support newer; Tauri stays
   on 2.x (3 is alpha). `minimatch` is overridden to 11 in root `package.json` for the audit.
 - Comments explain *why* (the style inherited from booru); keep that when editing.

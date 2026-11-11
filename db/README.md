@@ -1,14 +1,16 @@
 # The database
 
 Postgres on Neon — its own project, separate from booru's. `migrations/` is the source of
-truth, applied by `scripts/migrate.mjs`; a dashboard edit is never the answer.
+truth, applied by `scripts/migrate.mts` (TypeScript, run directly by Node 24); a dashboard
+edit is never the answer.
 
 | | |
 |---|---|
 | `npm run db:push` | list what the database has not seen, ask, apply it, then re-apply `grants.sql`. `--yes` skips the question |
 | `npm run db:list` | what is applied and what is pending |
+| `npm run db:reset` | **drops every table** and applies everything from nothing. Shows what it will drop and how many rows, then asks you to type the database name — `--yes` does not skip it; without a terminal pass `--confirm=<name>`. Images in the bucket are not deleted |
 
-Both read `DATABASE_URL_OWNER` from `.env`.
+All three read `DATABASE_URL_OWNER` from `.env`.
 
 ## The three roles
 
