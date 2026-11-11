@@ -2,7 +2,7 @@
 //! object, remove one — signed with AWS Signature V4 by hand.
 //!
 //! The website never writes here and holds no key; it reads images by URL off the public
-//! origin. Only this app does, with the key compiled into it.
+//! origin. Only this app does, with the key from its setup code.
 
 use hmac::{Hmac, KeyInit, Mac};
 use sha2::{Digest, Sha256};
@@ -105,8 +105,8 @@ async fn send(request: reqwest::RequestBuilder, what: &str) -> Result<(), String
 /// Stores an object. A year, immutable: the name is the md5 of the bytes, so a URL that
 /// resolves at all resolves to one image for ever, and Cloudflare's cache never asks twice.
 pub async fn put(key: &str, bytes: Vec<u8>, content_type: &str) -> Result<(), String> {
-    let r2 = &config().ok_or(crate::db::NOT_SET_UP)?.r2;
-    let signed = sign(r2, "PUT", key, &bytes);
+    let config = config().ok_or(crate::db::NOT_SET_UP)?;
+    let signed = sign(&config.r2, "PUT", key, &bytes);
     let mut request = client()
         .put(&signed.url)
         .header("content-type", content_type)
@@ -118,8 +118,8 @@ pub async fn put(key: &str, bytes: Vec<u8>, content_type: &str) -> Result<(), St
 }
 
 pub async fn remove(key: &str) -> Result<(), String> {
-    let r2 = &config().ok_or(crate::db::NOT_SET_UP)?.r2;
-    let signed = sign(r2, "DELETE", key, b"");
+    let config = config().ok_or(crate::db::NOT_SET_UP)?;
+    let signed = sign(&config.r2, "DELETE", key, b"");
     let mut request = client().delete(&signed.url);
     for (name, value) in signed.headers {
         request = request.header(name, value);

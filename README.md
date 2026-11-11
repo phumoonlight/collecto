@@ -24,7 +24,7 @@ filter, no tags, no artists, no maintenance switch — and an app rewritten in R
   (`My Sketches` → `my_sketches`, `_xxxxx` added if taken), editable later in the app — falling
   back to their cuid2 id: `/collections/<ref_id or id>`.
 - **The website is read-only.** Every change to the board is made in the app, with the
-  database login and bucket key compiled into its build.
+  database login and bucket key from its setup code.
 
 ## Images: lossless, in their own format
 
@@ -71,13 +71,24 @@ Needs the Rust toolchain (stable, MSVC on Windows) and WebView2, which Windows 1
 ```
 npm run app:dev      # the window, with hot reload
 npm run app:build    # an NSIS installer under packages/app/src-tauri/target/release/bundle/
-npm run app:test     # the Rust tests: compression, signing, names
+npm run app:test     # the Rust tests: compression, signing, names, setup code
+npm run app:code     # the setup code for the app, from .env
 ```
 
-Both compile in seven values from `.env` — `DATABASE_URL_APP`, `NEXT_PUBLIC_CDN_URL`,
-`NEXT_PUBLIC_SITE_URL` and the four `R2_*` (see `src-tauri/build.rs`). A debug build without
-them opens and says it is not set up; a release build refuses to compile. **Anyone with the
-installer can write to the board** — treat it like the key it contains.
+**The app is built without any environment**, and the installer holds no credential. On first
+start it asks for a **setup code** and its **passphrase**:
+
+1. `npm run app:code` reads the seven app values from `.env` — `DATABASE_URL_APP`,
+   `NEXT_PUBLIC_CDN_URL`, `NEXT_PUBLIC_SITE_URL` and the four `R2_*` — asks for a passphrase
+   (≥12 characters, or Enter to generate six words) and prints one line, `collecto2.…`: the
+   values encrypted with AES-256-GCM under a scrypt key from the passphrase.
+2. Paste the code and type the passphrase into the app. It checks the database answers, then
+   keeps the values in Windows Credential Manager; that machine never asks again.
+
+The same code and passphrase set up any PC, again after a Windows reinstall. Keep them apart —
+the code alone is unreadable. A new code is only needed when a value inside changes; enter it
+under Settings → Change connection. There is no passphrase reset: a forgotten one means
+running `app:code` again.
 
 | | |
 |---|---|

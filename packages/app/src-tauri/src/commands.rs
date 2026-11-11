@@ -46,9 +46,9 @@ pub fn app_status(app: AppHandle) -> AppStatus {
     let (images, bytes) = image_cache::usage();
     AppStatus {
         configured: cfg.is_some(),
-        site_url: cfg.map(|c| c.site_url.clone()).unwrap_or_default(),
+        site_url: cfg.as_ref().map(|c| c.site_url.clone()).unwrap_or_default(),
         database_host: database_host(),
-        cdn_url: cfg.map(|c| c.cdn_url.clone()).unwrap_or_default(),
+        cdn_url: cfg.as_ref().map(|c| c.cdn_url.clone()).unwrap_or_default(),
         versions: json!({
             "app": app.package_info().version.to_string(),
             "tauri": tauri::VERSION,
@@ -249,6 +249,43 @@ pub fn open_external(app: AppHandle, url: String) -> Result<(), String> {
         return Err("Only web links can be opened".into());
     }
     app.opener().open_url(parsed.as_str(), None::<&str>).map_err(|e| e.to_string())
+}
+
+/// Opens a setup code and, once the board answers, makes it this machine's connection: saved
+/// to the credential store, the database pool rebuilt on next use, and the collection list
+/// dropped — it belonged to whichever board was connected before. Nothing secret is logged.
+#[tauri::command]
+pub async fn set_connection(code: String, passphrase: String) -> Value {
+    let code: String = code.chars().filter(|c| !c.is_whitespace()).take(8000).collect();
+    let passphrase: String = passphrase.chars().take(500).collect();
+    activity::logged("connection:set", json!({}), async move {
+        let config = tauri::async_runtime::spawn_blocking(move || crate::setup::decode(&code, &passphrase))
+            .await
+            .map_err(|e| e.to_string())??;
+        crate::db::check(&config).await?;
+        crate::setup::save(&config)?;
+        let host = url::Url::parse(&config.database_url)
+            .ok()
+            .and_then(|u| u.host_str().map(str::to_string))
+            .unwrap_or_default();
+        crate::config::set(Some(config));
+        cache::drop_collections();
+        Ok(json!({ "databaseHost": host }))
+    })
+    .await
+}
+
+/// Forgets this machine's connection — the credential and the session's copy. The window goes
+/// back to asking for a setup code.
+#[tauri::command]
+pub async fn clear_connection() -> Value {
+    activity::logged("connection:clear", json!({}), async {
+        crate::setup::forget()?;
+        crate::config::set(None);
+        cache::drop_collections();
+        Ok(json!({}))
+    })
+    .await
 }
 
 /// Shows `save.json` in the file manager — the answer to "where did that go".

@@ -1,8 +1,8 @@
 //! Collecto's manager: everything that writes to the board, as a window.
 //!
 //! The website only displays. Naming a collection, filling it, moving an image between
-//! shelves and removing one all happen here, with the database login and bucket key compiled
-//! into this build. Uploading is mostly compression — lossless, in each image's own format —
+//! shelves and removing one all happen here, with the database login and bucket key this
+//! machine was set up with (`setup.rs`). Uploading is mostly compression — lossless, in each image's own format —
 //! which is CPU work that belongs on your machine rather than a serverless function.
 
 // No console window behind the app in a release build.
@@ -22,6 +22,7 @@ mod names;
 mod paths;
 mod prefs;
 mod protocol;
+mod setup;
 mod staging;
 mod store;
 mod time;
@@ -49,6 +50,8 @@ fn main() {
         })
         .setup(|app| {
             paths::init(app.handle())?;
+            // The connection this machine was set up with, if any; none opens on Settings.
+            config::set(setup::load());
             activity::init(app.handle().clone());
             staging::clean_downloads();
             Ok(())
@@ -73,6 +76,8 @@ fn main() {
             commands::clear_cache,
             commands::open_external,
             commands::open_data_folder,
+            commands::set_connection,
+            commands::clear_connection,
         ])
         .build(tauri::generate_context!())
         .expect("Collecto could not start")

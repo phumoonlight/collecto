@@ -9,9 +9,10 @@ import { api, type AppStatus } from './api'
 type View = 'collections' | 'logs' | 'settings' | 'about'
 
 /**
- * Four screens. There is no login and no setup step: which board this build talks to was
- * decided when it was built and compiled in. The window opens on the collections; Settings
- * is forced open only for a build made without a board, since it is the screen that says so.
+ * Four screens. There is no login: which board this copy talks to is set once per machine
+ * from a setup code (Settings), and kept in the OS credential store. The window opens on the
+ * collections; Settings is forced open until that code has been entered, since it is the
+ * screen that asks for it.
  */
 export function App() {
   const [status, setStatus] = useState<AppStatus | null>(null)

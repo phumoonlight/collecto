@@ -25,7 +25,7 @@ export type Preferences = {
 }
 
 export type AppStatus = {
-  /** False only for a build made without the board's values. */
+  /** False until a setup code has been entered on this machine. */
   configured: boolean
   siteUrl: string
   /** The host, never the URL — that carries a password. */
@@ -125,6 +125,16 @@ export const api = {
     }),
   /** The row and both stored objects. */
   deleteCollectionPost: (id: number) => invoke<Outcome>('delete_collection_post', { id }),
+
+  /** Opens a setup code with its passphrase and, once the board answers, saves it as this
+   *  machine's connection. Slow on purpose (scrypt): about a second. */
+  setConnection: (code: string, passphrase: string) =>
+    invoke<{ ok: true; databaseHost: string } | { ok: false; error: string }>('set_connection', {
+      code,
+      passphrase,
+    }),
+  /** Forgets this machine's connection; the window asks for a code again. */
+  clearConnection: () => invoke<Outcome>('clear_connection'),
 
   listLogs: () => invoke<LogEntry[]>('list_logs'),
   clearLogs: () => invoke<void>('clear_logs'),

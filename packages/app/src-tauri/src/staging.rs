@@ -108,7 +108,7 @@ async fn mark_duplicates(mut outcomes: Vec<StageOutcome>) -> Vec<StageOutcome> {
         })
         .collect();
     let Some(db) = db::pool() else { return outcomes };
-    match data::find_posts_by_file_names(db, &names).await {
+    match data::find_posts_by_file_names(&db, &names).await {
         Ok(found) => {
             for outcome in outcomes.iter_mut() {
                 if let StageOutcome::Staged(staged) = outcome {

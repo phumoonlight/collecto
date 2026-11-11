@@ -1,5 +1,6 @@
 //! What the app remembers about *this machine* — `save.json`, plain readable JSON with
-//! nothing secret in it. The board's values are compiled in (`config.rs`), never here.
+//! nothing secret in it. The board's values are in the OS credential store (`setup.rs`),
+//! never here.
 //!
 //! All of it is about how hard an upload works: how many cores the lossless pass may take,
 //! and how much effort it spends on PNGs.

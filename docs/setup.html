@@ -135,7 +135,7 @@
           <tr>
             <td>App</td>
             <td><code>packages/app/</code> — Tauri (Rust + React)</td>
-            <td>A writing database login and the bucket's write key, compiled into the build</td>
+            <td>A writing database login and the bucket's write key, from a setup code entered once per PC</td>
           </tr>
           <tr>
             <td>Database</td>
@@ -227,7 +227,8 @@ create role collecto_web login password 'a different long random string';</code>
       <h2 id="env">5. <code>.env</code></h2>
       <p>
         Copy the template and fill it in. It is git-ignored, and it is the one file the website,
-        the migration runner and the app build all read.
+        the migration runner and <code>npm run app:code</code> read. The app itself never reads
+        it: “app code” below means the value goes into the setup code.
       </p>
       <pre><code>cp .env.example .env</code></pre>
       <div class="table-wrap">
@@ -241,7 +242,7 @@ create role collecto_web login password 'a different long random string';</code>
           <tr>
             <td><code>DATABASE_URL_APP</code></td>
             <td><code>collecto_app</code>, direct host (pooled also works)</td>
-            <td>app build</td>
+            <td>app code</td>
           </tr>
           <tr>
             <td><code>DATABASE_URL_OWNER</code></td>
@@ -251,17 +252,17 @@ create role collecto_web login password 'a different long random string';</code>
           <tr>
             <td><code>NEXT_PUBLIC_CDN_URL</code></td>
             <td>bucket's public origin, no trailing slash</td>
-            <td>website, app</td>
+            <td>website, app code</td>
           </tr>
           <tr>
             <td><code>R2_ACCOUNT_ID</code>, <code>R2_ACCESS_KEY_ID</code>,<br /><code>R2_SECRET_ACCESS_KEY</code>, <code>R2_BUCKET</code></td>
             <td>from step 4</td>
-            <td>app build</td>
+            <td>app code</td>
           </tr>
           <tr>
             <td><code>NEXT_PUBLIC_SITE_URL</code></td>
             <td>the website's origin, e.g. <code>https://collecto.example.com</code></td>
-            <td>website (optional), app</td>
+            <td>website (optional), app code</td>
           </tr>
           <tr>
             <td><code>NEXT_PUBLIC_SITE_NAME</code></td>
@@ -305,16 +306,35 @@ npm run typecheck    # run `npx next typegen` first on a fresh checkout</code></
       <h2 id="app">8. Run and build the app</h2>
       <pre><code>npm run app:dev      # the window, with hot reload
 npm run app:test     # Rust tests
-npm run app:build    # release build + NSIS installer</code></pre>
-      <ul>
+npm run app:build    # release build + NSIS installer — needs no .env
+npm run app:code     # the setup code the app asks for on first start</code></pre>
+      <h3>Connect the app (once per PC)</h3>
+      <ol class="steps">
         <li>
-          The board's values are <strong>compiled in</strong> from <code>.env</code> (or the
-          process environment) by <code>packages/app/src-tauri/build.rs</code>. After changing
-          them, rebuild.
+          Run <code>npm run app:code</code> on the machine with the <code>.env</code>. Type a
+          passphrase of at least 12 characters (twice), or press Enter to have six words
+          generated. It prints one line starting <code>collecto2.</code> — the seven app values,
+          encrypted.
         </li>
         <li>
-          A debug build without them still opens, on the Settings screen saying it is not set up.
-          A release build <strong>refuses to compile</strong> and names what is missing.
+          Keep the code and the passphrase in <em>different</em> places, e.g. the code in your notes,
+          the passphrase in a password manager. The code alone is unreadable.
+        </li>
+        <li>
+          Start the app. It opens on Settings: paste the code, type the passphrase,
+          <strong>Connect</strong>. It checks the database answers, then saves the values in
+          Windows Credential Manager — this PC will not ask again.
+        </li>
+      </ol>
+      <ul>
+        <li>
+          A new PC, or Windows reinstalled: paste the same code and passphrase again. Make a new
+          code only when a value inside it changes (a rotated R2 key, a new database password),
+          then use Settings → <strong>Change connection</strong> on each PC.
+        </li>
+        <li>
+          Forgot the passphrase? There is no reset — run <code>npm run app:code</code> again
+          with a new one.
         </li>
         <li>
           The installer lands in
@@ -367,8 +387,16 @@ npm run app:build    # release build + NSIS installer</code></pre>
             <td>The role was made with the console button. Drop it, recreate with SQL, <code>db:push</code>.</td>
           </tr>
           <tr>
-            <td>App opens on Settings: “no board baked into it”</td>
-            <td>Values were missing at build time. Fill <code>.env</code>, rebuild.</td>
+            <td>App opens on Settings: “not connected yet”</td>
+            <td>Expected on first start — paste the setup code from <code>npm run app:code</code>.</td>
+          </tr>
+          <tr>
+            <td>“Wrong passphrase, or the code was not copied whole”</td>
+            <td>Check the passphrase (capitals and spaces count), and that the whole code was pasted.</td>
+          </tr>
+          <tr>
+            <td><code>app:code</code>: “Not set: …”</td>
+            <td>Those app values are missing from <code>.env</code>.</td>
           </tr>
           <tr>
             <td>Upload fails with <code>403 SignatureDoesNotMatch</code> / <code>InvalidAccessKeyId</code></td>

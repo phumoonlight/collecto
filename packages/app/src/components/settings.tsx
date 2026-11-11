@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { api, type AppStatus, type Preferences } from '../api'
 import { bytes } from '../image-url'
-import { BUTTON_SM } from './buttons'
+import { BUTTON_SM, buttonToggle } from './buttons'
+import { ConnectionForm } from './connection-form'
 import { HoldButton } from './hold-button'
 import { Choice, Field, Readout } from './settings-rows'
 
@@ -14,7 +15,8 @@ const PNG_LEVELS: { value: string; label: string }[] = [
 /**
  * Three sections, and only one of them is settings.
  *
- * **Connection** is a readout: which board this copy writes to was decided when it was built.
+ * **Connection** is which board this copy writes to: set from a setup code on first start, kept
+ * in the OS credential store, and changeable here.
  * **Compression** is the real settings, about this machine rather than the board: how many
  * cores the lossless pass may take, and how hard it works on PNGs. **Cache** is a readout and
  * an escape hatch.
@@ -24,6 +26,8 @@ export function Settings({ status, onChanged }: { status: AppStatus; onChanged: 
   // so the screen never shows a value that was refused.
   const [values, setValues] = useState<Preferences>(status.preferences)
   const [editingThreads, setEditingThreads] = useState(false)
+  const [changing, setChanging] = useState(false)
+  const [disconnectError, setDisconnectError] = useState<string | null>(null)
 
   async function save(patch: Partial<Preferences>) {
     const updated = { ...values, ...patch }
@@ -56,8 +60,9 @@ export function Settings({ status, onChanged }: { status: AppStatus; onChanged: 
             Connection
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Set when this copy was built, and not editable here. To point at another board, build
-            the app again with that project&rsquo;s values in the repo&rsquo;s environment file.
+            Which database and bucket this copy writes to. Set from a setup code made by{' '}
+            <code>npm run app:code</code>, and kept in Windows Credential Manager — never in a file,
+            and never in the app itself.
           </p>
         </div>
 
@@ -66,17 +71,46 @@ export function Settings({ status, onChanged }: { status: AppStatus; onChanged: 
             <Readout label="Database" value={status.databaseHost} />
             <Readout label="Images" value={status.cdnUrl} />
             <Readout label="Site" value={status.siteUrl} />
-            <p className="text-xs text-muted">
-              The database login and the bucket keys are compiled in with these. They are not
-              shown, and nothing writes them to disk.
-            </p>
+            <div className="flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setChanging((was) => !was)}
+                aria-pressed={changing}
+                className={buttonToggle(changing)}
+              >
+                <span aria-hidden>🔁</span> Change connection
+              </button>
+              <HoldButton
+                ms={1200}
+                title="Hold to disconnect this machine"
+                onHold={() =>
+                  void api.clearConnection().then((result) => {
+                    if (result.ok) onChanged()
+                    else setDisconnectError(result.error)
+                  })
+                }
+                className={BUTTON_SM}
+              >
+                <span aria-hidden>⏏️</span> Hold to disconnect
+              </HoldButton>
+            </div>
+            {disconnectError && <p className="text-sm text-[#ff5d5f]">{disconnectError}</p>}
+            {changing && (
+              <ConnectionForm
+                onConnected={() => {
+                  setChanging(false)
+                  onChanged()
+                }}
+              />
+            )}
           </>
         ) : (
-          <p className="border border-red-500/30 bg-red-500/15 px-3 py-2 text-sm text-red-400">
-            This build has no board baked into it, so there is nothing to upload to. Rebuild it with
-            DATABASE_URL_APP, NEXT_PUBLIC_CDN_URL, NEXT_PUBLIC_SITE_URL and the four R2 values set
-            in <code>.env</code>.
-          </p>
+          <>
+            <p className="border border-accent/40 bg-accent/10 px-3 py-2 text-sm">
+              This machine is not connected yet. Paste the setup code and its passphrase — once.
+            </p>
+            <ConnectionForm onConnected={onChanged} />
+          </>
         )}
 
         <div className="flex flex-wrap items-center gap-1">

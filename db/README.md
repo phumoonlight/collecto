@@ -34,7 +34,7 @@ also what you run after recreating a role.
 | role | held by | may |
 |---|---|---|
 | `neondb_owner` | `.env`, the migration runner only | everything, DDL included |
-| `collecto_app` | compiled into the app (`DATABASE_URL_APP`) | read and write every row; **no** create, alter or drop |
+| `collecto_app` | the app, via its setup code (`DATABASE_URL_APP`, `npm run app:code`) | read and write every row; **no** create, alter or drop |
 | `collecto_web` | Vercel (`DATABASE_URL`) | read both tables; `update (view_count) on collection_posts`, and nothing else |
 
 **Which host for which login.** The website runs on serverless functions: give `DATABASE_URL`

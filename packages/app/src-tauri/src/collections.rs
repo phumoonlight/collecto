@@ -28,13 +28,13 @@ async fn dropping<T>(write: impl std::future::Future<Output = Result<T, String>>
 
 pub async fn read_collections(force: bool) -> Result<Vec<Collection>, String> {
     let db = require()?;
-    cache::collections(force, || data::list_collections(db)).await
+    cache::collections(force, || data::list_collections(&db)).await
 }
 
 pub async fn read_posts(collection_id: String, after: Option<i32>, per_page: Option<i64>) -> Result<PostPage, String> {
     let db = require()?;
     let per_page = per_page.unwrap_or(PAGE_SIZE).clamp(1, 200);
-    cache::posts(&collection_id, after, per_page, || data::list_collection_posts(db, &collection_id, after, per_page)).await
+    cache::posts(&collection_id, after, per_page, || data::list_collection_posts(&db, &collection_id, after, per_page)).await
 }
 
 /// A new collection's address is made from its name — it is not typed here; the edit form
@@ -46,7 +46,7 @@ pub async fn create(name: String, mark: String) -> Value {
         let name = read_name(&name)?;
         let mark = read_mark(&mark)?;
         let base = ref_id_from_name(&name);
-        let (id, ref_id) = dropping(data::create_collection(db, &name, mark.as_deref(), base.as_deref())).await?;
+        let (id, ref_id) = dropping(data::create_collection(&db, &name, mark.as_deref(), base.as_deref())).await?;
         Ok(json!({ "id": id, "name": name, "mark": mark, "ref_id": ref_id }))
     })
     .await
@@ -59,7 +59,7 @@ pub async fn edit(id: String, name: String, mark: String, ref_id: String) -> Val
         let name = read_name(&name)?;
         let mark = read_mark(&mark)?;
         let ref_id = read_ref_id(&ref_id)?;
-        dropping(data::update_collection(db, &id, &name, mark.as_deref(), ref_id.as_deref())).await?;
+        dropping(data::update_collection(&db, &id, &name, mark.as_deref(), ref_id.as_deref())).await?;
         Ok(json!({ "name": name, "mark": mark, "ref_id": ref_id }))
     })
     .await
@@ -68,7 +68,7 @@ pub async fn edit(id: String, name: String, mark: String, ref_id: String) -> Val
 pub async fn delete(id: String) -> Value {
     logged("collection:delete", json!({ "id": id }), async {
         let db = require()?;
-        dropping(data::delete_collection(db, &id)).await?;
+        dropping(data::delete_collection(&db, &id)).await?;
         Ok(json!({}))
     })
     .await
@@ -132,7 +132,7 @@ pub async fn upload(collection_id: String, path: String, source_url: String) -> 
         let header = header?;
         compress::check_limits(original_size as u64, &header)?;
 
-        if let Some((id, shelf)) = data::find_posts_by_file_names(db, std::slice::from_ref(&md5)).await?.remove(&md5) {
+        if let Some((id, shelf)) = data::find_posts_by_file_names(&db, std::slice::from_ref(&md5)).await?.remove(&md5) {
             return Err(format!("This image is already in {shelf} (#{id})"));
         }
 
@@ -161,7 +161,7 @@ pub async fn upload(collection_id: String, path: String, source_url: String) -> 
         // pointing at a missing object is a broken image on the site.
         store::put(&image_key, optimized.bytes.clone(), content_type).await?;
         if let Err(error) = store::put(&thumb_key, thumb.clone(), content_type).await {
-            if ours_to_remove(db, &md5).await {
+            if ours_to_remove(&db, &md5).await {
                 let _ = store::remove(&image_key).await;
             }
             return Err(error);
@@ -177,10 +177,10 @@ pub async fn upload(collection_id: String, path: String, source_url: String) -> 
             height: header.height as i32,
             source_url: &source_url,
         };
-        let id = match dropping(data::create_post(db, &row)).await {
+        let id = match dropping(data::create_post(&db, &row)).await {
             Ok(id) => id,
             Err(error) => {
-                if ours_to_remove(db, &md5).await {
+                if ours_to_remove(&db, &md5).await {
                     let _ = store::remove(&image_key).await;
                     let _ = store::remove(&thumb_key).await;
                 }
@@ -208,7 +208,7 @@ pub async fn save_source(id: i32, source_url: String) -> Value {
     logged("collection:edit-image", detail, async {
         let db = require()?;
         let source_url = read_source(&source_url)?;
-        dropping(data::update_post_source(db, id, &source_url)).await?;
+        dropping(data::update_post_source(&db, id, &source_url)).await?;
         Ok(json!({}))
     })
     .await
@@ -221,7 +221,7 @@ pub async fn move_posts(ids: Vec<i32>, collection_id: String) -> Value {
         if ids.is_empty() {
             return Err("Nothing selected".into());
         }
-        let moved = dropping(data::move_posts(db, &ids, &collection_id)).await?;
+        let moved = dropping(data::move_posts(&db, &ids, &collection_id)).await?;
         Ok(json!({ "moved": moved }))
     })
     .await
@@ -231,7 +231,7 @@ pub async fn move_posts(ids: Vec<i32>, collection_id: String) -> Value {
 /// from `file_name`, which nothing else stores.
 pub async fn delete_post(id: i32) -> Value {
     let post = match require() {
-        Ok(db) => data::get_post(db, id).await.ok().flatten(),
+        Ok(db) => data::get_post(&db, id).await.ok().flatten(),
         Err(_) => None,
     };
     let detail = json!({
@@ -245,7 +245,7 @@ pub async fn delete_post(id: i32) -> Value {
         if post.is_none() {
             return Err(format!("Image {id} not found."));
         }
-        dropping(data::delete_post_row(db, id)).await?.ok_or_else(|| format!("Image {id} not found."))?;
+        dropping(data::delete_post_row(&db, id)).await?.ok_or_else(|| format!("Image {id} not found."))?;
         Ok(json!({}))
     })
     .await;
