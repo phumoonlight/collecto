@@ -6,7 +6,7 @@
 //! converted to another format. Flat rather than per shelf, so moving an image between
 //! shelves is one column and no object moves.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use tauri::{AppHandle, Manager};
 
@@ -32,7 +32,7 @@ pub fn safe_ext(ext: &str) -> bool {
 }
 
 struct Dirs {
-    /// `save.json` — preferences, meant to be opened and carried to another machine.
+    /// `save.json` — preferences, plain JSON meant to be opened.
     config: PathBuf,
     /// `app-cache/` — copies of what the board holds; deletable at any moment.
     cache: PathBuf,
@@ -40,16 +40,42 @@ struct Dirs {
 
 static DIRS: OnceLock<Dirs> = OnceLock::new();
 
-/// Called once at startup. A debug build keeps its own folders, so working on the app never
-/// disturbs the preferences, cache and log of the copy you use.
+/// Called once at startup. **Everything lives in one folder** — the app's local data folder
+/// (`%LOCALAPPDATA%\dev.collecto.manager` on Windows): `save.json` at its top, `app-cache/`
+/// beside it. Nothing goes to Roaming; a roaming profile is not something this app is used
+/// with. A debug build keeps its own `dev` subfolder, so working on the app never disturbs the
+/// preferences, cache and log of the copy you use.
 pub fn init(app: &AppHandle) -> tauri::Result<()> {
     let flavour = |base: PathBuf| if cfg!(debug_assertions) { base.join("dev") } else { base };
-    let config = flavour(app.path().app_config_dir()?);
-    let cache = flavour(app.path().app_local_data_dir()?).join("app-cache");
-    let _ = std::fs::create_dir_all(&config);
+    let config = flavour(app.path().app_local_data_dir()?);
+    let cache = config.join("app-cache");
     let _ = std::fs::create_dir_all(&cache);
+    move_from_roaming(&flavour(app.path().app_config_dir()?), &config);
     let _ = DIRS.set(Dirs { config, cache });
     Ok(())
+}
+
+/// Earlier builds kept `save.json` in the Roaming folder. It is moved into the local one once,
+/// unless a local one already exists, and the Roaming folders are removed when that leaves
+/// them empty — `remove_dir` refuses a folder with anything else in it, such as another
+/// build's preferences.
+fn move_from_roaming(old: &Path, new: &Path) {
+    if old == new {
+        return;
+    }
+    let (from, to) = (old.join("save.json"), new.join("save.json"));
+    if from.exists() && !to.exists() {
+        let moved = std::fs::rename(&from, &to)
+            .or_else(|_| std::fs::copy(&from, &to).and_then(|_| std::fs::remove_file(&from)));
+        if let Err(error) = moved {
+            eprintln!("Could not move save.json out of Roaming: {error}");
+            return;
+        }
+    }
+    let _ = std::fs::remove_dir(old);
+    if let Some(parent) = old.parent().filter(|_| cfg!(debug_assertions)) {
+        let _ = std::fs::remove_dir(parent);
+    }
 }
 
 pub fn config_dir() -> PathBuf {

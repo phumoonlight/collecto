@@ -90,6 +90,6 @@ installer can write to the board** — treat it like the key it contains.
 | `src-tauri/src/protocol.rs` | `board-image://`, how the window draws images from the cache |
 | `src/` | the React window: collections, logs, settings, about |
 
-Preferences (encoder threads, PNG effort, Zopfli) are in `save.json` in the app's config
-folder; the cache and log in `app-cache/` in its local data folder. A debug build keeps its own
-copy of both.
+Everything the app keeps is in one folder, `%LOCALAPPDATA%\dev.collecto.manager\`:
+`save.json` (encoder threads, PNG effort, Zopfli) and `app-cache/` (images, grid copies, the
+collection list, the log). Nothing goes to Roaming. A debug build uses a `dev\` subfolder of it.

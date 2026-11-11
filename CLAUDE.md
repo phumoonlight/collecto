@@ -111,7 +111,9 @@ Post pages: in memory per session. Images: `app-cache/images/<md5>.<ext>` fetche
 CDN and never stale; grid tiles: `app-cache/grid/<md5>.<w>x<h>[-top].webp`, cut to the tile's
 device-pixel box. The window loads images only through the `board-image` custom protocol
 (`protocol.rs`; on Windows the URL is `http://board-image.localhost/collection/<md5>.<ext>?grid=…`,
-see `packages/app/src/image-url.ts`). Debug builds use separate `dev/` data folders.
+see `packages/app/src/image-url.ts`). All app data is under the local data folder
+(`paths.rs`): `save.json` at its top, `app-cache/` beside it, nothing in Roaming — `paths::init`
+moves a `save.json` left in Roaming by older builds. Debug builds use a `dev/` subfolder.
 
 **Window UI** (`packages/app/src/`) is ported from booru's Electron renderer: `api.ts` wraps every
 `invoke`; file drops come from Tauri's `onDragDropEvent` (real paths), and web images are added by
