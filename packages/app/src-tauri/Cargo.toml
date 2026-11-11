@@ -1,0 +1,51 @@
+[package]
+name = "collecto-app"
+version = "0.1.0"
+description = "Collecto's manager: collections, uploads with lossless compression, caching and logs"
+edition = "2021"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["sync", "fs", "time", "macros", "rt-multi-thread"] }
+
+# The board: Neon Postgres, and the R2 bucket spoken to over plain signed HTTP — the AWS SDK
+# drags in aws-lc-sys, which needs CMake and NASM to build on Windows, for two calls.
+sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "derive"] }
+# reqwest's own `rustls` feature brings aws-lc-rs for the same reason, so it gets rustls with
+# no provider and `ring` is installed as the process default at startup (`main.rs`).
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "http2", "charset"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+hmac = "0.13"
+sha2 = "0.11"
+hex = "0.4"
+
+# Images: decode, resize, and one lossless optimizer per format.
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp"] }
+fast_image_resize = { version = "6", features = ["image"] }
+oxipng = { version = "10", default-features = false, features = ["parallel", "zopfli"] }
+mozjpeg-sys = { version = "2", default-features = false, features = ["unwinding"] }
+webp = "0.3"
+rayon = "1"
+
+md-5 = "0.11"
+base64 = "0.23"
+unicode-segmentation = "1"
+url = "2"
+
+[profile.dev.package."*"]
+# Image codecs are unusably slow unoptimized, even in a dev build.
+opt-level = 3
+
+[profile.release]
+codegen-units = 1
+lto = true
+strip = true

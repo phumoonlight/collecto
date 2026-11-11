@@ -1,0 +1,77 @@
+@import 'tailwindcss';
+
+/* Dark theme only — the same palette as the app's window (packages/app/src/styles.css). */
+:root {
+  /* The UA paints its own furniture dark too — scrollbars, the select popup. */
+  color-scheme: dark;
+
+  --background: #0d0f14;
+  --foreground: #e5e7eb;
+  --muted: #9ca3af;
+  --surface: #161a22;
+  --border: #262b36;
+  --accent: #60a5fa;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-lexend-sans);
+  --font-mono: var(--font-geist-mono);
+  --animate-nav-progress: nav-progress 1.1s ease-in-out infinite;
+}
+
+/* The navigation bar's slide. Indeterminate: a navigation has no progress to report, only
+   the fact that the server has been asked. */
+@keyframes nav-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(350%);
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Tailwind v4 drops the UA pointer cursor on buttons — put it back while enabled */
+button:not(:disabled),
+[type='submit']:not(:disabled),
+summary {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}

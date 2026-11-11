@@ -147,3 +147,14 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Next.js
+next-env.d.ts
+.vercel
+
+# The app's Rust build output, and the schemas Tauri generates from the capabilities
+packages/app/src-tauri/target/
+packages/app/src-tauri/gen/
+
+# scratch — plans and notes, not part of the build
+/.tmp

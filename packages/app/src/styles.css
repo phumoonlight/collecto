@@ -1,0 +1,98 @@
+/* Only this window's own files are scanned — left to itself Tailwind walks up to the git root
+   and sweeps the whole Next app in beside it. */
+@import 'tailwindcss' source(none);
+@source './**/*.{ts,tsx}';
+@source '../index.html';
+
+/* Lexend, the website's face, from a package: the window loads nothing from the network. */
+@import '@fontsource-variable/lexend';
+
+/* The website's palette, verbatim from src/app/globals.css. Dark theme only. */
+:root {
+  color-scheme: dark;
+
+  --background: #0d0f14;
+  --foreground: #e5e7eb;
+  --muted: #9ca3af;
+  --surface: #161a22;
+  --border: #262b36;
+  --accent: #60a5fa;
+  /* The window's own: the border under the pointer or the caret, so "you are here" is one
+     colour on every control and is not mistaken for accent, which means "this is on". */
+  --hover: #35c64a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-hover: var(--hover);
+  --font-sans:
+    'Lexend Variable', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  /* A window is not a document: the app scrolls its own screens, never the frame */
+  overflow: hidden;
+  /* Nothing in the window is a document selection; inputs opt back in below. */
+  user-select: none;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+button:not(:disabled),
+[type='submit']:not(:disabled),
+summary {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+/* No picture in this window is something to drag anywhere. */
+img {
+  -webkit-user-drag: none;
+}
+
+input,
+textarea {
+  user-select: text;
+}
+
+/* The native arrow sits hard against the border; ours is drawn a text-padding in. */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.75 6 6.25 11 1.75' fill='none' stroke='%239ca3af' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75em center;
+  background-size: 0.7em;
+  padding-right: 2.1em;
+}
