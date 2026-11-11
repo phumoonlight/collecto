@@ -2,9 +2,9 @@
 //! database and bucket a copy writes to is decided when it is built, never typed into a
 //! settings screen and never written to disk by the app.
 //!
-//! Each value is read from the process environment first, then from the repo root's
-//! `.env.local`, then `.env` — the order Next.js gives them. A debug build without them still compiles — the window says it is not set
-//! up — but a release build refuses, so no installer can ship pointing at nothing.
+//! Each value is read from the process environment first, then from the repo root's `.env`.
+//! A debug build without them still compiles — the window says it is not set up — but a
+//! release build refuses, so no installer can ship pointing at nothing.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -42,15 +42,11 @@ fn main() {
         println!("cargo:rerun-if-env-changed={key}");
     }
 
-    // `.env` first, then `.env.local` over it, so a local override wins.
-    let mut file = HashMap::new();
-    for name in [".env", ".env.local"] {
-        let path = root.join(name);
-        println!("cargo:rerun-if-changed={}", path.display());
-        if let Ok(text) = std::fs::read_to_string(&path) {
-            file.extend(parse_env_file(&text));
-        }
-    }
+    let env_file = root.join(".env");
+    println!("cargo:rerun-if-changed={}", env_file.display());
+    let file = std::fs::read_to_string(&env_file)
+        .map(|text| parse_env_file(&text))
+        .unwrap_or_default();
 
     let mut missing = Vec::new();
     for key in KEYS {

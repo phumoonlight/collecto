@@ -49,7 +49,7 @@ There are no JS tests; the Rust tests cover compression, SigV4 signing, names/so
 other than the view counter belongs in the app instead — the database will refuse it.
 
 **Config is compiled into the app.** `src-tauri/build.rs` reads `DATABASE_URL_APP`,
-`NEXT_PUBLIC_CDN_URL`, `NEXT_PUBLIC_SITE_URL` and `R2_*` from env or the root `.env` (`.env.local` overrides) and
+`NEXT_PUBLIC_CDN_URL`, `NEXT_PUBLIC_SITE_URL` and `R2_*` from env or the root `.env` and
 emits them as `COLLECTO_*` rustc env vars read by `config.rs`. Debug builds without them run
 "not configured" (Settings screen forced open); release builds panic.
 

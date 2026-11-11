@@ -108,7 +108,14 @@ if (!command) {
   process.exit(1)
 }
 
-const sql = postgres(url, { max: 1, onnotice: (notice) => console.log(`notice   ${notice.message}`) })
+const sql = postgres(url, {
+  max: 1,
+  onnotice: (notice) => {
+    // 42P07 is `create table if not exists` finding `_migrations` — on every run but the first.
+    if (notice.code === '42P07') return
+    console.log(`notice   ${notice.message}`)
+  },
+})
 try {
   await command(sql)
 } catch (error) {

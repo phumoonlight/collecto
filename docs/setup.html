@@ -226,9 +226,8 @@ create role collecto_web login password 'a different long random string';</code>
 
       <h2 id="env">5. <code>.env</code></h2>
       <p>
-        Copy the template and fill it in. It is git-ignored. An optional <code>.env.local</code>
-        beside it overrides any value in <code>.env</code> — for the website, the migration runner
-        and the app build alike.
+        Copy the template and fill it in. It is git-ignored, and it is the one file the website,
+        the migration runner and the app build all read.
       </p>
       <pre><code>cp .env.example .env</code></pre>
       <div class="table-wrap">

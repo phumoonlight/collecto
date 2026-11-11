@@ -11,8 +11,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "db:list": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/migrate.mjs list",
-    "db:push": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/migrate.mjs push",
+    "db:list": "node --env-file-if-exists=.env scripts/migrate.mjs list",
+    "db:push": "node --env-file-if-exists=.env scripts/migrate.mjs push",
     "app:dev": "npm run dev -w app",
     "app:build": "npm run build -w app",
     "app:test": "npm run test:rust -w app"

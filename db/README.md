@@ -8,7 +8,7 @@ truth, applied by `scripts/migrate.mjs`; a dashboard edit is never the answer.
 | `npm run db:push` | list what the database has not seen, ask, apply it, then re-apply `grants.sql`. `--yes` skips the question |
 | `npm run db:list` | what is applied and what is pending |
 
-Both read `DATABASE_URL_OWNER` from `.env` (`.env.local` overrides it, if present).
+Both read `DATABASE_URL_OWNER` from `.env`.
 
 ## The three roles
 

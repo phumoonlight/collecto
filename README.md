@@ -48,7 +48,7 @@ format. Limits are 50MB and 100MP per file.
 
 ```
 npm install
-cp .env.example .env           # fill in the Neon and R2 values (.env.local overrides, if present)
+cp .env.example .env           # fill in the Neon and R2 values
 npm run db:push                # create the tables and apply the grants
 ```
 
