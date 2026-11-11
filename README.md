@@ -39,7 +39,7 @@ Every rewrite is decoded and **compared with the original pixel for pixel**; it 
 if the pixels match and the file is smaller, so the worst case is the file you uploaded. JPEG
 EXIF is kept only when it carries an orientation; ICC profiles are always kept.
 
-The thumbnail is the one lossy step: 384px tall (width capped at 768), in the image's own
+The thumbnail is the one lossy step: 360px tall (width capped at 720), in the image's own
 format. Limits are 50MB and 100MP per file.
 
 ## Setup

@@ -17,14 +17,14 @@ import type { CSSProperties } from 'react'
  * it a single leftover thumb would stretch across the whole width. Every item caps at the
  * same row height, so a capped row stays uniform, it just stops short of the right edge.
  */
-export const ROW = 'flex flex-wrap gap-1 [--row-h:15rem] sm:[--row-h:17.5rem] lg:[--row-h:20rem]'
+export const ROW = 'flex flex-wrap gap-1 [--row-h:15rem] sm:[--row-h:17.5rem] lg:[--row-h:18.75rem]'
 const MIN_ROW = 0.75
-// 1.2 × 20rem is 384px on desktop — exactly THUMB_MAX_HEIGHT, so a row never upscales
+// 1.2 × 18.75rem is 360px on desktop — exactly THUMB_MAX_HEIGHT, so a row never upscales
 // past the pixels the thumbnail actually has. The two are one decision: raising either
 // without the other either blurs the grid or stores bytes nobody sees.
 const MAX_ROW = 1.2
 
-/** Thumbnails are bounded to 768×384 (`@common/imgcmp/for-thumbnail`), so a panorama's
+/** Thumbnails are bounded to 720×360 (`src-tauri/src/compress.rs`), so a panorama's
     thumb is at most 2:1 however wide the post is. Laying it out at the post's ratio
     would reserve width the image can't fill. */
 const MAX_RATIO = 2

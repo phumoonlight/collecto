@@ -55,8 +55,8 @@ function CollectionCard({ collection }: { collection: Collection }) {
           <Image
             src={collectionThumbUrl(cover, coverExt)}
             alt=""
-            width={384}
-            height={384}
+            width={360}
+            height={360}
             unoptimized
             placeholder="blur"
             blurDataURL={BLUR_DATA_URL}

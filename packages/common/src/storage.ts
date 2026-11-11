@@ -23,6 +23,6 @@ export function imageUrl(base: string, path: string): string {
   return `${base}/${path}`
 }
 
-/** Thumbnails are bounded to 768×384 — the grid lays a panorama out at most 2:1. */
-export const THUMB_MAX_HEIGHT = 384
+/** Thumbnails are bounded to 720×360 — the grid lays a panorama out at most 2:1. */
+export const THUMB_MAX_HEIGHT = 360
 export const THUMB_MAX_RATIO = 2

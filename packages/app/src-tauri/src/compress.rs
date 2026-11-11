@@ -17,7 +17,7 @@
 //! byte-for-byte. The worst case is the file you gave it.
 //!
 //! The thumbnail is the one lossy step, since a thumbnail is a smaller picture by
-//! definition: 384px tall (width capped at 768), in the original's format.
+//! definition: 360px tall (width capped at 720), in the original's format.
 
 use std::io::Cursor;
 
@@ -30,8 +30,8 @@ use crate::jpeg;
 
 pub const MAX_FILE_SIZE: u64 = 50 * 1024 * 1024;
 pub const MAX_PIXELS: u64 = 100_000_000;
-pub const THUMB_HEIGHT: u32 = 384;
-pub const THUMB_MAX_WIDTH: u32 = 768;
+pub const THUMB_HEIGHT: u32 = 360;
+pub const THUMB_MAX_WIDTH: u32 = 720;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
@@ -480,7 +480,7 @@ mod tests {
         let thumb = thumbnail(&jpeg, Kind::Jpeg).unwrap();
         assert_eq!(Kind::detect(&thumb), Some(Kind::Jpeg));
         let header = read_header(&thumb).unwrap();
-        assert_eq!((header.width, header.height), (768, 384));
+        assert_eq!((header.width, header.height), (720, 360));
 
         let mut gif = Vec::new();
         DynamicImage::ImageRgb8(sample(100, 50))
