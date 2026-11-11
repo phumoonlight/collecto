@@ -1,5 +1,5 @@
 //! What this copy of the app did to the board — every upload, edit and delete, with how long
-//! it took and what the board or the bucket said when it refused — in `app-cache/logs.json`.
+//! it took and what the board or the bucket said when it refused — in `app/cache/logs.json`.
 //!
 //! In the cache folder because losing it loses nothing the board does not hold. Every entry
 //! is pushed to the window as it is written (`activity:entry`): that is how the Logs screen

@@ -1,4 +1,4 @@
-//! `app-cache/` — everything held only because reading it again is slow, and nothing else.
+//! `app/cache/` — everything held only because reading it again is slow, and nothing else.
 //! The whole folder can be deleted at any moment; the only cost is the next read.
 //!
 //! What is cached is the *wait*, not the bytes: the board is a Postgres instance on the other

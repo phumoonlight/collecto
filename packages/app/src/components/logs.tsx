@@ -6,7 +6,7 @@ import { HoldButton } from './hold-button'
 /**
  * What this copy of the app has done to the board — every upload, edit and delete, newest
  * first, with what the board or the bucket said, how long it took, and for an upload what the
- * lossless pass made of it. Kept in `app-cache/logs.json`, so it survives a restart, and new
+ * lossless pass made of it. Kept in `app/cache/logs.json`, so it survives a restart, and new
  * entries land here live while the screen is open.
  *
  * A technical readout: the action is its `area:verb` and the detail its raw JSON, because the

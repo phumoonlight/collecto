@@ -32,9 +32,9 @@ pub fn safe_ext(ext: &str) -> bool {
 }
 
 struct Dirs {
-    /// `save.json` — preferences, plain JSON meant to be opened.
+    /// `app/` — holds `save.json`, the preferences: plain JSON meant to be opened.
     config: PathBuf,
-    /// `app-cache/` — copies of what the board holds; deletable at any moment.
+    /// `app/cache/` — copies of what the board holds, and the log; deletable at any moment.
     cache: PathBuf,
 }
 
@@ -44,19 +44,32 @@ static DIRS: OnceLock<Dirs> = OnceLock::new();
 const OLD_IDENTIFIER: &str = "dev.collecto.manager";
 
 /// Called once at startup. **Everything lives in one folder** — the app's local data folder,
-/// named after the bundle identifier (`%LOCALAPPDATA%\app.phumoonlight.collecto` on Windows):
-/// `save.json` at its top, `app-cache/` beside it. Nothing goes to Roaming; a roaming profile is
-/// not something this app is used with. A debug build keeps its own `dev` subfolder, so working
-/// on the app never disturbs the preferences, cache and log of the copy you use.
+/// named after the bundle identifier (`%LOCALAPPDATA%pp.phumoonlight.collecto` on Windows):
+///
+/// ```text
+/// <root>/app/save.json
+/// <root>/app/cache/        images/, grid/, collections.json, logs.json
+/// ```
+///
+/// `<root>` is that folder for a release build and its `dev` subfolder for a debug build, so
+/// working on the app never disturbs the preferences, cache and log of the copy you use. The
+/// webview keeps its own `EBWebView` beside them. Nothing goes to Roaming.
 pub fn init(app: &AppHandle) -> tauri::Result<()> {
     let flavour = |base: PathBuf| if cfg!(debug_assertions) { base.join("dev") } else { base };
-    let config = flavour(app.path().app_local_data_dir()?);
-    let cache = config.join("app-cache");
+    let root = flavour(app.path().app_local_data_dir()?);
+    let config = root.join("app");
+    let cache = config.join("cache");
+    let _ = std::fs::create_dir_all(&config);
 
-    // Before anything is created here, so an older build's cache can be moved in whole.
-    for root in [app.path().local_data_dir()?, app.path().config_dir()?] {
-        let old = root.join(OLD_IDENTIFIER);
-        move_legacy(&flavour(old.clone()), &config);
+    // Earlier layouts, before anything is created in `cache`, so an old cache moves in whole:
+    // `save.json` and `app-cache/` at the root of this folder, then the same under the old
+    // identifier, in Local or Roaming.
+    move_legacy(&root, &config, &cache);
+    for base in [app.path().local_data_dir()?, app.path().config_dir()?] {
+        let old = base.join(OLD_IDENTIFIER);
+        let old_root = flavour(old.clone());
+        move_legacy(&old_root, &config, &cache);
+        let _ = std::fs::remove_dir(&old_root);
         // The old identifier's WebView data sits at its root whichever build made it — a
         // browser cache nothing reads any more. The root itself goes only once it is empty,
         // so a debug build never takes a release build's files, or the reverse.
@@ -69,25 +82,20 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
-/// Moves what an earlier build left in `old` — under the old identifier, Local or Roaming —
-/// into `new`: `save.json` and `app-cache/`, each only if `new` does not have one yet. Nothing
-/// is deleted here: an item that could not move, or that `new` already had, stays where it is,
-/// and the old folder is removed by the caller only once it is empty.
-fn move_legacy(old: &Path, new: &Path) {
-    if old == new || !old.is_dir() {
+/// Moves an earlier layout's `save.json` and `app-cache/` out of `old` into `config/save.json`
+/// and `cache/`, each only if the new place does not have one yet. Nothing is deleted here: an
+/// item that could not move, or that already existed, stays where it is.
+fn move_legacy(old: &Path, config: &Path, cache: &Path) {
+    if !old.is_dir() {
         return;
     }
-    let _ = std::fs::create_dir_all(new);
-    for name in ["save.json", "app-cache"] {
-        let (from, to) = (old.join(name), new.join(name));
+    for (from, to) in [(old.join("save.json"), config.join("save.json")), (old.join("app-cache"), cache.to_path_buf())] {
         if from.exists() && !to.exists() {
             if let Err(error) = std::fs::rename(&from, &to) {
                 eprintln!("Could not move {} to {}: {error}", from.display(), to.display());
             }
         }
     }
-    // Empty now unless something stayed behind.
-    let _ = std::fs::remove_dir(old);
 }
 
 pub fn config_dir() -> PathBuf {

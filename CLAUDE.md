@@ -95,7 +95,7 @@ no row now owns that md5 (`ours_to_remove`).
 
 **App backend layout.** `commands.rs` is the entire IPC surface (args camelCase from JS →
 snake_case). Writes go through `activity::logged`, which returns `{ok:true,…}|{ok:false,error}`
-to the window and appends to `app-cache/logs.json`, emitting `activity:entry` (Logs screen +
+to the window and appends to `app/cache/logs.json`, emitting `activity:entry` (Logs screen +
 error notices). Reads return `Result<_, String>` (the JS promise rejects). Every write calls
 `cache::drop_collections()`. SQL lives only in `data.rs` (sqlx, runtime queries, no macros;
 `statement_cache_capacity(0)` for pooler compatibility). R2 is hand-signed SigV4 over reqwest in
@@ -106,16 +106,16 @@ error notices). Reads return `Result<_, String>` (the JS promise rejects). Every
 `ring` provider; sqlx uses `tls-rustls` (ring). Check `cargo tree -i aws-lc-sys` is empty after
 dependency changes.
 
-**Caching (app).** Collection list: `app-cache/collections.json`, trusted for a day, 🔄 forces.
-Post pages: in memory per session. Images: `app-cache/images/<md5>.<ext>` fetched from the public
-CDN and never stale; grid tiles: `app-cache/grid/<md5>.<w>x<h>[-top].webp`, cut to the tile's
+**Caching (app).** Collection list: `app/cache/collections.json`, trusted for a day, 🔄 forces.
+Post pages: in memory per session. Images: `app/cache/images/<md5>.<ext>` fetched from the public
+CDN and never stale; grid tiles: `app/cache/grid/<md5>.<w>x<h>[-top].webp`, cut to the tile's
 device-pixel box. The window loads images only through the `board-image` custom protocol
 (`protocol.rs`; on Windows the URL is `http://board-image.localhost/collection/<md5>.<ext>?grid=…`,
 see `packages/app/src/image-url.ts`). All app data is under the local data folder
 (`paths.rs`), named after the bundle identifier `app.phumoonlight.collecto`
-(`tauri.conf.json`): `save.json` at its top, `app-cache/` beside it, nothing in Roaming.
-`paths::init` moves data left by builds under the old identifier `dev.collecto.manager` (Local
-or Roaming) and deletes an old folder only once it is empty. Changing the identifier again
+(`tauri.conf.json`): `app/save.json` and `app/cache/` inside it, nothing in Roaming.
+`paths::init` moves data left in earlier layouts — `save.json`/`app-cache/` at the root, and the
+same under the old identifier `dev.collecto.manager` (Local or Roaming) — and deletes an old folder only once it is empty. Changing the identifier again
 means adding to that migration. Debug builds use a `dev/` subfolder.
 
 **Window UI** (`packages/app/src/`) is ported from booru's Electron renderer: `api.ts` wraps every

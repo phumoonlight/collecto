@@ -86,10 +86,10 @@ installer can write to the board** — treat it like the key it contains.
 | `src-tauri/src/data.rs` | every SQL statement the app sends |
 | `src-tauri/src/store.rs` | R2, over SigV4-signed HTTP |
 | `src-tauri/src/cache.rs`, `image_cache.rs` | the collection list (a day, on disk), each screenful (the session), and every image drawn (by md5, never stale) |
-| `src-tauri/src/activity.rs` | the log — `app-cache/logs.json`, live on the Logs screen; errors raise a notice |
+| `src-tauri/src/activity.rs` | the log — `app/cache/logs.json`, live on the Logs screen; errors raise a notice |
 | `src-tauri/src/protocol.rs` | `board-image://`, how the window draws images from the cache |
 | `src/` | the React window: collections, logs, settings, about |
 
 Everything the app keeps is in one folder, `%LOCALAPPDATA%\app.phumoonlight.collecto\`:
-`save.json` (encoder threads, PNG effort, Zopfli) and `app-cache/` (images, grid copies, the
+`app\save.json` (encoder threads, PNG effort, Zopfli) and `app\cache\` (images, grid copies, the
 collection list, the log). Nothing goes to Roaming. A debug build uses a `dev\` subfolder of it.

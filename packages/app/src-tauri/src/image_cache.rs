@@ -1,5 +1,5 @@
 //! Every stored image this window has drawn, kept as the file it is —
-//! `app-cache/images/<md5>.<ext>` — and the grid's copies cut from it, `app-cache/grid/`.
+//! `app/cache/images/<md5>.<ext>` — and the grid's copies cut from it, `app/cache/grid/`.
 //!
 //! **Nothing here expires, and nothing can go stale.** `file_name` is the md5 of the uploaded
 //! bytes, so a file found under that name *is* that image. The folders are bounded by the board
