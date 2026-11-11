@@ -66,51 +66,36 @@ export function Settings({ status, onChanged }: { status: AppStatus; onChanged: 
           </p>
         </div>
 
-        {status.configured ? (
-          <>
-            <Readout label="Database" value={status.databaseHost} />
-            <Readout label="Images" value={status.cdnUrl} />
-            <Readout label="Site" value={status.siteUrl} />
-            <div className="flex flex-wrap items-center gap-1">
-              <button
-                type="button"
-                onClick={() => setChanging((was) => !was)}
-                aria-pressed={changing}
-                className={buttonToggle(changing)}
-              >
-                <span aria-hidden>🔁</span> Change connection
-              </button>
-              <HoldButton
-                ms={1200}
-                title="Hold to disconnect this machine"
-                onHold={() =>
-                  void api.clearConnection().then((result) => {
-                    if (result.ok) onChanged()
-                    else setDisconnectError(result.error)
-                  })
-                }
-                className={BUTTON_SM}
-              >
-                <span aria-hidden>⏏️</span> Hold to disconnect
-              </HoldButton>
-            </div>
-            {disconnectError && <p className="text-sm text-[#ff5d5f]">{disconnectError}</p>}
-            {changing && (
-              <ConnectionForm
-                onConnected={() => {
-                  setChanging(false)
-                  onChanged()
-                }}
-              />
-            )}
-          </>
-        ) : (
-          <>
-            <p className="border border-accent/40 bg-accent/10 px-3 py-2 text-sm">
-              This machine is not connected yet. Paste the setup code and its passphrase — once.
-            </p>
-            <ConnectionForm onConnected={onChanged} />
-          </>
+        <Readout label="Database" value={status.databaseHost} />
+        <Readout label="Images" value={status.cdnUrl} />
+        <Readout label="Site" value={status.siteUrl} />
+        <div className="flex flex-wrap items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setChanging((was) => !was)}
+            aria-pressed={changing}
+            className={buttonToggle(changing)}
+          >
+            <span aria-hidden>🔁</span> Change connection
+          </button>
+          <HoldButton
+            ms={1200}
+            title="Hold to disconnect this machine"
+            onHold={() =>
+              void api.clearConnection().then((result) => {
+                // Reloaded, so no screen keeps state from the board it was showing.
+                if (result.ok) window.location.reload()
+                else setDisconnectError(result.error)
+              })
+            }
+            className={BUTTON_SM}
+          >
+            <span aria-hidden>⏏️</span> Hold to disconnect
+          </HoldButton>
+        </div>
+        {disconnectError && <p className="text-sm text-[#ff5d5f]">{disconnectError}</p>}
+        {changing && (
+          <ConnectionForm onConnected={() => window.location.reload()} />
         )}
 
         <div className="flex flex-wrap items-center gap-1">

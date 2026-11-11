@@ -4,6 +4,7 @@ import { Collections } from './components/collections'
 import { Logs } from './components/logs'
 import { Notices } from './components/notices'
 import { Settings } from './components/settings'
+import { SetupPage } from './components/setup-page'
 import { api, type AppStatus } from './api'
 
 type View = 'collections' | 'logs' | 'settings' | 'about'
@@ -11,8 +12,8 @@ type View = 'collections' | 'logs' | 'settings' | 'about'
 /**
  * Four screens. There is no login: which board this copy talks to is set once per machine
  * from a setup code (Settings), and kept in the OS credential store. The window opens on the
- * collections; Settings is forced open until that code has been entered, since it is the
- * screen that asks for it.
+ * collections; until that code has been entered the window is the setup page alone
+ * (`SetupPage`), since no screen can do anything without a board.
  */
 export function App() {
   const [status, setStatus] = useState<AppStatus | null>(null)
@@ -36,6 +37,16 @@ export function App() {
     return <div className="grid h-screen place-items-center text-sm text-muted">Starting…</div>
   }
 
+  if (!status.configured) {
+    return (
+      <>
+        {/* A fresh window once connected: nothing from before the connection survives. */}
+        <SetupPage status={status} onConnected={() => window.location.reload()} />
+        <Notices />
+      </>
+    )
+  }
+
   // The current item reads as a tab: a bar on the header's own border, not an underline.
   const ACTIVE_BAR =
     'relative after:absolute after:inset-x-0 after:-bottom-2 after:h-0.5 after:bg-accent'
@@ -48,7 +59,7 @@ export function App() {
   const screen =
     view === 'about' ? (
       <About status={status} />
-    ) : !status.configured || view === 'settings' ? (
+    ) : view === 'settings' ? (
       <Settings status={status} onChanged={() => void refresh()} />
     ) : view === 'collections' ? (
       <Collections siteUrl={status.siteUrl} />
@@ -83,7 +94,7 @@ export function App() {
             type="button"
             onClick={go('collections')}
             title="The collections the site shows"
-            className={navClass(view === 'collections' && status.configured)}
+            className={navClass(view === 'collections')}
           >
             <span aria-hidden>🗂️</span>
             Collections
@@ -96,11 +107,7 @@ export function App() {
             <span aria-hidden>ℹ️</span>
             About
           </button>
-          <button
-            type="button"
-            onClick={go('settings')}
-            className={navClass(view === 'settings' || (!status.configured && view !== 'about'))}
-          >
+          <button type="button" onClick={go('settings')} className={navClass(view === 'settings')}>
             <span aria-hidden>⚙️</span>
             Settings
           </button>

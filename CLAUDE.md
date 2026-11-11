@@ -58,7 +58,8 @@ scrypt(passphrase; N=2^17, r=8, p=1), prefix as AAD, passphrase trimmed + NFC, �
 the async runtime), checks the board answers (`db::check`), then stores the JSON in the OS
 credential store via `keyring` (service `app.phumoonlight.collecto`, `.dev` for debug).
 `config::config()` is runtime state (`Arc`, swapped by `config::set`); `db::pool()` rebuilds
-when the `Arc` changes. Not set up → Settings is forced open with the setup form. The two
+when the `Arc` changes. Not set up → the window is only `SetupPage` (no header); a connect or
+disconnect reloads the window so no screen keeps the old board's state. The two
 encoders must agree on every constant: `setup::tests::decodes_the_node_test_vector` holds a
 code made by the Node side.
 
