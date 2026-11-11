@@ -105,6 +105,23 @@ doesn't fix a type (`${x}::int`). `src/config.ts` is the only reader of `process
 `unoptimized` (served straight from the CDN). `/posts` is `force-dynamic` so it isn't prerendered
 with build-time data. Source URLs render as links only when `http(s)`.
 
+## Workflow
+
+After every code change, before reporting it done:
+
+1. **Re-check the diff for hidden or potential bugs** — not just that it compiles: failure and
+   cleanup paths, races between two copies of the app, untrusted input reaching the public site,
+   values that must stay in step across files (e.g. the bucket paths, the thumbnail bound and
+   the website's row height).
+2. **Verify** with whatever the change touches: `npm run typecheck`, `npm run lint`,
+   `npm run typecheck -w app`, `npm run app:test`, `npx next build`.
+3. **Commit to `main`** once checked (no feature branch), ending the message with the
+   `Co-Authored-By` line. Do not push unless asked.
+
+Env files are blocked for the agent by a hook (`.claude/hooks/deny-env.mjs`), including any
+Bash command whose text mentions them — pass commit messages that name them via a file
+(`git commit -F <file>`).
+
 ## Conventions
 
 - Prettier: no semicolons, single quotes, 100 cols, trailing commas es5.
