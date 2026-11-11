@@ -1,0 +1,19 @@
+{
+  "editor.formatOnSave": true,
+  "css.lint.unknownAtRules": "ignore",
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  // A SQL formatter rewrites the `$$` around a plpgsql body as `$ $`, which is a
+  // syntax error, and reflows every statement in the migrations onto its own set of
+  // lines. Migrations are hand-written and read top to bottom; leave them alone.
+  "[sql]": {
+    "editor.formatOnSave": false
+  }
+}
