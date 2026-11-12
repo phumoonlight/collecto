@@ -131,15 +131,63 @@ unsafe fn transcode(input: &[u8], keep_exif: bool) -> Vec<u8> {
     bytes
 }
 
-/// The same picture with its entropy coding redone. `keep_exif` keeps the APP1 EXIF block —
-/// worth its bytes only when it carries an orientation the browser has to apply.
-pub fn optimize(input: &[u8], keep_exif: bool) -> Result<Vec<u8>, String> {
-    // `resume_unwind` skips the panic hook, so a libjpeg error is not printed as a crash.
-    let result = panic::catch_unwind(AssertUnwindSafe(|| unsafe { transcode(input, keep_exif) }));
+unsafe fn compress_rgb(pixels: &[u8], width: u32, height: u32, quality: u8) -> Vec<u8> {
+    let mut err: Box<jpeg_error_mgr> = Box::new(mem::zeroed());
+    jpeg_std_error(&mut err);
+    err.error_exit = Some(error_exit);
+    err.emit_message = Some(emit_message);
+
+    let mut dst = Box::new(Compress(mem::zeroed()));
+    dst.0.common.err = &mut *err;
+    jpeg_create_compress(&mut dst.0);
+    dst.0.image_width = width;
+    dst.0.image_height = height;
+    dst.0.input_components = 3;
+    dst.0.in_color_space = J_COLOR_SPACE::JCS_RGB;
+    // mozjpeg's default profile is its max-compression one: trellis quantization, optimized
+    // Huffman tables and a scan search. Progressive is asked for explicitly all the same.
+    jpeg_set_defaults(&mut dst.0);
+    jpeg_set_quality(&mut dst.0, quality as c_int, 1);
+    jpeg_simple_progression(&mut dst.0);
+
+    let mut output = Output { buffer: ptr::null_mut(), size: 0 };
+    jpeg_mem_dest(&mut dst.0, &mut output.buffer, &mut output.size);
+    jpeg_start_compress(&mut dst.0, 1);
+    let stride = width as usize * 3;
+    while dst.0.next_scanline < height {
+        let row = pixels[dst.0.next_scanline as usize * stride..].as_ptr();
+        jpeg_write_scanlines(&mut dst.0, &row, 1);
+    }
+    jpeg_finish_compress(&mut dst.0);
+    let bytes = std::slice::from_raw_parts(output.buffer, output.size as usize).to_vec();
+
+    // Destroyed before the error manager it points at.
+    drop(dst);
+    drop(output);
+    bytes
+}
+
+fn caught(result: std::thread::Result<Vec<u8>>) -> Result<Vec<u8>, String> {
     result.map_err(|payload| match payload.downcast::<JpegFailure>() {
         Ok(failure) => failure.0,
         Err(_) => "the JPEG encoder failed".into(),
     })
+}
+
+/// The same picture with its entropy coding redone. `keep_exif` keeps the APP1 EXIF block —
+/// worth its bytes only when it carries an orientation the browser has to apply.
+pub fn optimize(input: &[u8], keep_exif: bool) -> Result<Vec<u8>, String> {
+    // `resume_unwind` skips the panic hook, so a libjpeg error is not printed as a crash.
+    caught(panic::catch_unwind(AssertUnwindSafe(|| unsafe { transcode(input, keep_exif) })))
+}
+
+/// A lossy encode through mozjpeg — the thumbnails. Its trellis quantization makes a file
+/// roughly a fifth to a third smaller than a plain libjpeg-style encoder at the same quality.
+pub fn encode_rgb(pixels: &[u8], width: u32, height: u32, quality: u8) -> Result<Vec<u8>, String> {
+    if width == 0 || height == 0 || pixels.len() != width as usize * height as usize * 3 {
+        return Err("bad RGB buffer".into());
+    }
+    caught(panic::catch_unwind(AssertUnwindSafe(|| unsafe { compress_rgb(pixels, width, height, quality) })))
 }
 
 #[cfg(test)]

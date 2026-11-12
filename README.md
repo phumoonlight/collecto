@@ -34,7 +34,7 @@ uploaded with, compressed **losslessly**:
 | format | what the app does |
 |---|---|
 | JPEG | rewrites the entropy coding — optimized Huffman tables, progressive scans (mozjpeg, like `jpegtran -optimize -progressive`). The DCT coefficients are untouched |
-| PNG | [oxipng](https://github.com/shssoichiro/oxipng): filter search, re-deflate (optionally Zopfli), lossless bit-depth and palette reductions |
+| PNG | [oxipng](https://github.com/shssoichiro/oxipng): filter search, re-deflate (optionally Zopfli), lossless bit-depth and palette reductions; an interlaced PNG is stored de-interlaced |
 | WebP | a lossless WebP is re-encoded at libwebp's maximum effort; a lossy or animated one is stored as uploaded |
 | GIF | stored as uploaded |
 
@@ -43,7 +43,7 @@ if the pixels match and the file is smaller, so the worst case is the file you u
 EXIF is kept only when it carries an orientation; ICC profiles are always kept.
 
 The thumbnail is the one lossy step: 360px tall (width capped at 720), in the image's own
-format. Limits are 50MB and 100MP per file.
+format; a JPEG thumbnail is encoded by mozjpeg (quality 85, trellis, progressive). Limits are 50MB and 100MP per file.
 
 ## Setup
 

@@ -209,6 +209,9 @@ fn optimize_png(bytes: &[u8], header: &Header, effort: Effort) -> Result<Vec<u8>
         return Err("an animated PNG is stored as uploaded".into());
     }
     let mut options = oxipng::Options::from_preset(effort.png_level.min(6));
+    // An interlaced (Adam7) PNG is stored de-interlaced: the same pixels, a smaller file —
+    // oxipng's default, spelled out so a version that changes it doesn't change us.
+    options.interlace = Some(false);
     // Every chunk that does not change how the picture is drawn goes — text, timestamps,
     // editor data. An EXIF orientation does change it, so a turned PNG keeps everything.
     options.strip = if header.orientation == Orientation::NoTransforms {
@@ -364,9 +367,7 @@ pub fn thumbnail(bytes: &[u8], kind: Kind) -> Result<Vec<u8>, String> {
     match kind {
         Kind::Jpeg => {
             let rgb = small.to_rgb8();
-            image::codecs::jpeg::JpegEncoder::new_with_quality(&mut out, 85)
-                .encode_image(&rgb)
-                .map_err(|e| e.to_string())?;
+            out = jpeg::encode_rgb(rgb.as_raw(), rgb.width(), rgb.height(), 85)?;
         }
         Kind::Png => {
             small.write_to(&mut Cursor::new(&mut out), ImageFormat::Png).map_err(|e| e.to_string())?;
@@ -454,6 +455,41 @@ mod tests {
         let result = optimize(&original, &header, effort());
         assert!(result.rewritten, "{}", result.note);
         verify(&original, &result.bytes, Kind::Png).unwrap();
+    }
+
+    /// Byte 12 of the IHDR data (file offset 28) is the interlace method.
+    fn interlaced(png: &[u8]) -> bool {
+        png[28] == 1
+    }
+
+    #[test]
+    fn interlaced_png_is_stored_deinterlaced() {
+        let image = DynamicImage::ImageRgb8(sample(300, 200));
+        let mut plain = Vec::new();
+        image.write_to(&mut Cursor::new(&mut plain), ImageFormat::Png).unwrap();
+        let mut options = oxipng::Options::from_preset(0);
+        options.interlace = Some(true);
+        options.force = true;
+        let original = oxipng::optimize_from_memory(&plain, &options).unwrap();
+        assert!(interlaced(&original));
+
+        let header = read_header(&original).unwrap();
+        let result = optimize(&original, &header, effort());
+        assert!(result.rewritten, "{}", result.note);
+        assert!(!interlaced(&result.bytes));
+        verify(&original, &result.bytes, Kind::Png).unwrap();
+    }
+
+    #[test]
+    fn jpeg_thumbnail_is_smaller_than_a_plain_encode() {
+        let image = sample(720, 360);
+        let mut plain = Vec::new();
+        image::codecs::jpeg::JpegEncoder::new_with_quality(&mut plain, 85).encode_image(&image).unwrap();
+        let ours = jpeg::encode_rgb(image.as_raw(), 720, 360, 85).unwrap();
+        assert!(ours.len() < plain.len(), "{} vs {}", ours.len(), plain.len());
+        let decoded = decode(&ours).unwrap();
+        assert_eq!((decoded.width(), decoded.height()), (720, 360));
+        assert!(jpeg::encode_rgb(&[0; 5], 2, 2, 85).is_err());
     }
 
     #[test]

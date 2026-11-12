@@ -101,7 +101,7 @@ their original format (jpg/png/gif/webp; AVIF is not accepted). The stored image
 `catch_unwind`), oxipng, or max-effort lossless WebP — decoded and compared pixel-for-pixel with
 the upload, kept only if identical and smaller; otherwise the upload is stored byte-for-byte.
 GIF and lossy/animated WebP are stored as uploaded. Thumbnails (360px tall, ≤720 wide) are the
-only lossy step, in the same format. Upload order: dedupe by md5 → encode (inside the rayon pool
+only lossy step, in the same format (JPEG through mozjpeg's encoder, `jpeg::encode_rgb`). Upload order: dedupe by md5 → encode (inside the rayon pool
 from `prefs.rs`) → put image + thumb to R2 → insert row; on failure, objects are removed only if
 no row now owns that md5 (`ours_to_remove`).
 
