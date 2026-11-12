@@ -15,7 +15,7 @@
     "db:push": "node --env-file-if-exists=.env scripts/migrate.mts push",
     "db:reset": "node --env-file-if-exists=.env scripts/migrate.mts reset",
     "app:dev": "npm run dev -w app",
-    "app:build": "npm run build -w app",
+    "app:build": "npm run build -w app && node scripts/app-release.mts",
     "app:code": "node --env-file-if-exists=.env scripts/app-code.mts",
     "app:test": "npm run test:rust -w app"
   },

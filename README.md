@@ -70,7 +70,7 @@ Needs the Rust toolchain (stable, MSVC on Windows) and WebView2, which Windows 1
 
 ```
 npm run app:dev      # the window, with hot reload
-npm run app:build    # an NSIS installer under packages/app/src-tauri/target/release/bundle/
+npm run app:build    # an NSIS installer, moved to release/ at the repo root
 npm run app:test     # the Rust tests: compression, signing, names, setup code
 npm run app:code     # the setup code for the app, from .env
 ```

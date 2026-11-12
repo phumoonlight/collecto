@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="224" fill="#0d0f14"/>
+  <g transform="rotate(-12 512 512)">
+    <rect x="232" y="246" width="560" height="480" rx="56" fill="#2a4a78"/>
+  </g>
+  <g transform="rotate(5 512 560)">
+    <rect x="240" y="358" width="544" height="444" rx="30" fill="#0d0f14"/>
+    <circle cx="644" cy="480" r="52" fill="#fbbf24"/>
+    <path d="M240 802 L240 700 L420 520 L540 650 L610 580 L784 760 L784 802 Z" fill="#60a5fa"/>
+    <!-- The frame goes on last, over the picture's edges, so no seam shows between them. -->
+    <rect x="237" y="355" width="550" height="450" rx="40" fill="none" stroke="#60a5fa" stroke-width="50"/>
+  </g>
+</svg>

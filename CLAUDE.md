@@ -28,7 +28,7 @@ npm run typecheck        # website + packages/common
 npx next typegen         # regenerate PageProps/RouteContext types before tsc on a fresh checkout
 
 npm run app:dev          # Tauri window with hot reload (Vite on :1420)
-npm run app:build        # release build + NSIS installer (fails without .env values)
+npm run app:build        # release build; the NSIS installer is moved to release/ (needs no env)
 npm run typecheck -w app # the app window's TS (separate tsconfig; excluded from root tsc)
 npm run app:test         # all Rust tests
 
@@ -140,6 +140,11 @@ never query from a component. postgres.js v4 sends parameters untyped, so cast w
 doesn't fix a type (`${x}::int`). `src/config.ts` is the only reader of `process.env`. Images are
 `unoptimized` (served straight from the CDN). `/posts` is `force-dynamic` so it isn't prerendered
 with build-time data. Source URLs render as links only when `http(s)`.
+
+**Icons.** One drawing, `packages/app/src-tauri/icons/icon.svg`. The app's set comes from
+`npx tauri icon src-tauri/icons/icon.svg` (in `packages/app`; delete the `android/` and `ios/` it
+also writes). The website's `src/app/icon.svg` is a copy, and `favicon.ico` (16/32/48) and
+`apple-icon.png` (180) are rendered from it. Change the drawing → regenerate all of them.
 
 ## Workflow
 

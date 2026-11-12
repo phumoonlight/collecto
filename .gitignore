@@ -156,5 +156,8 @@ next-env.d.ts
 packages/app/src-tauri/target/
 packages/app/src-tauri/gen/
 
+# The app's installers, moved out of target/ by `npm run app:build`
+/release/
+
 # scratch — plans and notes, not part of the build
 /.tmp

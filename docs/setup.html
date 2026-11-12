@@ -338,8 +338,8 @@ npm run app:code     # the setup code the app asks for on first start</code></pr
           with a new one.
         </li>
         <li>
-          The installer lands in
-          <code>packages/app/src-tauri/target/release/bundle/nsis/</code>.
+          The installer lands in <code>release/</code> at the repo root (moved there from
+          Cargo's build folder).
         </li>
         <li>
           Everything the app keeps is in one folder,
@@ -349,10 +349,10 @@ npm run app:code     # the setup code the app asks for on first start</code></pr
         </li>
       </ul>
       <div class="note">
-        <strong>The installer contains the writing database login and the bucket key.</strong>
-        Anyone who has it can change the board. Share it only with people you would give those
-        credentials to. To revoke, change the <code>collecto_app</code> password and rotate the R2
-        token, then rebuild.
+        <strong>The setup code and its passphrase together are the writing database login and the
+        bucket key.</strong> The installer holds neither, so it can be shared freely; share the
+        code and passphrase only with people you would give those credentials to. To revoke,
+        change the <code>collecto_app</code> password and rotate the R2 token, then make a new code.
       </div>
 
       <h2 id="vercel">9. Deploy the website to Vercel</h2>
