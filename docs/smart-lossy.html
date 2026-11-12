@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Smart lossy plan</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f8fa;
+        --fg: #1b1f27;
+        --muted: #5b6372;
+        --surface: #ffffff;
+        --border: #dde1e8;
+        --accent: #2563eb;
+        --code-bg: #eef1f5;
+        --warn-bg: #fff6e0;
+        --warn-border: #e9c46a;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          color-scheme: dark;
+          --bg: #0d0f14;
+          --fg: #e5e7eb;
+          --muted: #9ca3af;
+          --surface: #161a22;
+          --border: #262b36;
+          --accent: #60a5fa;
+          --code-bg: #1d222c;
+          --warn-bg: #2a2412;
+          --warn-border: #8a6d1f;
+        }
+      }
+      :root[data-theme='dark'] {
+        color-scheme: dark;
+        --bg: #0d0f14;
+        --fg: #e5e7eb;
+        --muted: #9ca3af;
+        --surface: #161a22;
+        --border: #262b36;
+        --accent: #60a5fa;
+        --code-bg: #1d222c;
+        --warn-bg: #2a2412;
+        --warn-border: #8a6d1f;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      main { max-width: 820px; margin: 0 auto; padding: 32px 16px 96px; }
+      h1 { font-size: 1.9rem; margin: 0 0 4px; }
+      h2 {
+        font-size: 1.3rem;
+        margin: 44px 0 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+      }
+      h3 { font-size: 1.05rem; margin: 24px 0 8px; }
+      p, li { color: var(--fg); }
+      .lead { color: var(--muted); margin-top: 0; }
+      a { color: var(--accent); }
+      code {
+        font: 0.88em ui-monospace, 'Cascadia Code', Consolas, monospace;
+        background: var(--code-bg);
+        padding: 1px 5px;
+        border-radius: 4px;
+      }
+      pre {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 14px;
+        overflow-x: auto;
+        font: 0.86rem/1.55 ui-monospace, 'Cascadia Code', Consolas, monospace;
+      }
+      pre code { background: none; padding: 0; }
+      table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.92rem; }
+      th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+      th { color: var(--muted); font-weight: 600; }
+      .table-wrap { overflow-x: auto; }
+      .note {
+        background: var(--warn-bg);
+        border: 1px solid var(--warn-border);
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin: 14px 0;
+      }
+      nav.toc {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 18px;
+        margin: 20px 0;
+      }
+      nav.toc ol { margin: 0; padding-left: 20px; }
+      .step { counter-increment: step; }
+      ol.steps > li { margin-bottom: 8px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Smart lossy compression</h1>
+      <p class="lead">
+        A planned option, not built yet: make PNG uploads much smaller by changing their pixels
+        slightly, the way TinyPNG does. It sits next to today&rsquo;s lossless compression and
+        is off unless you turn it on.
+      </p>
+
+      <h2>Today vs. smart lossy</h2>
+      <div class="table-wrap">
+        <table>
+          <tr><th></th><th>Today (lossless)</th><th>Smart lossy (optional)</th></tr>
+          <tr><td>Pixels</td><td>Identical to the upload, checked</td><td>Changed slightly</td></tr>
+          <tr><td>PNG size saving</td><td>Usually small</td><td>Often 50&ndash;80%</td></tr>
+          <tr><td>Best for</td><td>Everything</td><td>Flat art, screenshots, icons</td></tr>
+          <tr><td>Bad for</td><td>&mdash;</td><td>Photos, smooth gradients (colour banding)</td></tr>
+          <tr><td>Original kept?</td><td>Yes</td><td>No &mdash; only the smaller file is stored</td></tr>
+          <tr><td>Default</td><td>On</td><td>Off</td></tr>
+        </table>
+      </div>
+      <p class="note">
+        Lossy can&rsquo;t be undone: once uploaded this way, the original pixels are gone. That
+        is why it is a choice you make, never the default.
+      </p>
+
+      <h2>How it works</h2>
+      <p>
+        A PNG can hold millions of colours. Smart lossy picks the best 256 for the picture and
+        redraws it with only those, blending (dithering) where colours meet so the eye
+        doesn&rsquo;t notice. Fewer colours compress far better.
+      </p>
+      <p>
+        Every result is then compared with the original. If it looks too different, or
+        isn&rsquo;t smaller, the app throws it away and uses normal lossless compression
+        instead &mdash; so the worst case is the same as today.
+      </p>
+
+      <h2>Per format</h2>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Format</th><th>Smart lossy</th></tr>
+          <tr><td>PNG</td><td>Yes &mdash; the main target</td></tr>
+          <tr><td>JPEG</td><td>No: re-saving a JPEG at lower quality loses detail for little gain</td></tr>
+          <tr><td>WebP</td><td>Maybe later, for lossless WebP only</td></tr>
+          <tr><td>GIF</td><td>No: already 256 colours</td></tr>
+        </table>
+      </div>
+
+      <h2>How you&rsquo;d turn it on</h2>
+      <ul>
+        <li>A <strong>Settings</strong> switch under Compression: &ldquo;Smart lossy for PNG: off / on&rdquo;.</li>
+        <li>Maybe also a switch on the upload screen, for one batch of screenshots only.</li>
+        <li>The log says when a file was stored lossy, and how much it saved.</li>
+      </ul>
+
+      <h2>Open question</h2>
+      <p>
+        The best colour-reduction library (<code>imagequant</code>, used by pngquant) is GPL-3
+        licensed unless a commercial licence is bought, which matters if the app is ever shared.
+        Free-licence alternatives exist but give worse results. Technical details for the
+        implementation are in <code>docs/smart-lossy.md</code>.
+      </p>
+    </main>
+  </body>
+</html>

@@ -1,5 +1,7 @@
 # Smart lossy compression (planned, not built)
 
+Agent-facing spec. The human-readable version is `docs/smart-lossy.html` — keep both in step.
+
 An **optional** lossy mode for uploads, like TinyPNG's. It does not replace the current
 lossless pipeline: lossless stays the default, and smart lossy is something you turn on when
 you want smaller files more than the original pixels.
