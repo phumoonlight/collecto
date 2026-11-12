@@ -5,7 +5,6 @@
     "deploymentEnabled": {
       "deploy-prod": true,
       "deploy-preview": true,
-      "main": true,
       "*": false
     }
   }
