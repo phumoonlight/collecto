@@ -160,7 +160,13 @@ After every code change, before reporting it done:
    current schema, since there is no local Postgres.
 3. **Update the docs the change affects** — this file, `README.md`, `db/README.md`,
    `docs/setup.html` — in the same commit.
-4. **Commit to `main`** once checked (no feature branch), ending the message with the
+4. **Bump the app version on every change to `packages/app/`** (the desktop app is live).
+   Semver: patch for fixes, minor for features, major for breaking ones (e.g. a setup code or
+   saved data the old app can't read). The version lives in `packages/app/package.json`,
+   `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`; refresh the lockfiles with
+   `cargo update --workspace --offline` (in `src-tauri`) and `npm install --package-lock-only`.
+   The website (root `package.json`) is not bumped.
+5. **Commit to `main`** once checked (no feature branch), ending the message with the
    `Co-Authored-By` line. Do not push unless asked.
 
 Env files are blocked for the agent by a hook (`.claude/hooks/deny-env.mjs`), including any
