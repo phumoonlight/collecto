@@ -32,7 +32,7 @@ export const COLLECTION_PAGE_SIZE = 24
 /** Expects `collection_posts p` joined to `collections c`. */
 const postColumns = (sql: Sql) => sql`
   p.id, p.collection_id, p.file_name, p.file_ext, p.file_size, p.original_size,
-  p.width, p.height, p.source_url, p.view_count,
+  p.width, p.height, p.animated, p.source_url, p.view_count,
   to_char(p.created_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as created_at,
   coalesce(c.ref_id, c.id) as collection_slug`
 
@@ -41,6 +41,7 @@ const shelfColumns = (sql: Sql) => sql`
   count(p.id)::int as post_count,
   (array_agg(p.file_name order by p.id desc))[1] as cover_file_name,
   (array_agg(p.file_ext  order by p.id desc))[1] as cover_file_ext,
+  (array_agg(p.animated  order by p.id desc))[1] as cover_animated,
   to_char(c.updated_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as updated_at`
 
 /** `%` and `_` are wildcards to `ilike`, and a shelf called `100%` should find itself. */

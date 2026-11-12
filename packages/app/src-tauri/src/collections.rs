@@ -112,8 +112,8 @@ async fn ours_to_remove(db: &sqlx::PgPool, md5: &str) -> bool {
 }
 
 /// One file onto one shelf: inspect, refuse a duplicate, compress losslessly, make the
-/// thumbnail, store both, insert the row — and take back whatever landed if a later step
-/// fails. The bytes are read here, never sent across the bridge.
+/// thumbnail (none for an animated image), store them, insert the row — and take back
+/// whatever landed if a later step fails. The bytes are read here, never sent across the bridge.
 pub async fn upload(collection_id: String, path: String, source_url: String) -> Value {
     let detail = json!({ "collectionId": collection_id, "path": path, "sourceUrl": source_url });
     logged("collection:upload", detail, async move {
@@ -139,11 +139,13 @@ pub async fn upload(collection_id: String, path: String, source_url: String) -> 
         let effort = prefs::load().effort();
         let pool = prefs::pool();
         let started = std::time::Instant::now();
+        // An animated image has no thumbnail: a still cut from it would stop it moving, so the
+        // website and the app draw the stored file itself.
         let (optimized, thumb) = tauri::async_runtime::spawn_blocking(move || {
             pool.install(|| {
                 rayon::join(
                     || compress::optimize(&bytes, &header, effort),
-                    || compress::thumbnail(&bytes, header.kind),
+                    || (!header.animated).then(|| compress::thumbnail(&bytes, header.kind)).transpose(),
                 )
             })
         })
@@ -160,11 +162,13 @@ pub async fn upload(collection_id: String, path: String, source_url: String) -> 
         // Files before the row: an object nothing points at is invisible litter, where a row
         // pointing at a missing object is a broken image on the site.
         store::put(&image_key, optimized.bytes.clone(), content_type).await?;
-        if let Err(error) = store::put(&thumb_key, thumb.clone(), content_type).await {
-            if ours_to_remove(&db, &md5).await {
-                let _ = store::remove(&image_key).await;
+        if let Some(thumb) = &thumb {
+            if let Err(error) = store::put(&thumb_key, thumb.clone(), content_type).await {
+                if ours_to_remove(&db, &md5).await {
+                    let _ = store::remove(&image_key).await;
+                }
+                return Err(error);
             }
-            return Err(error);
         }
 
         let row = NewPost {
@@ -175,6 +179,7 @@ pub async fn upload(collection_id: String, path: String, source_url: String) -> 
             original_size: original_size as i32,
             width: header.width as i32,
             height: header.height as i32,
+            animated: header.animated,
             source_url: &source_url,
         };
         let id = match dropping(data::create_post(&db, &row)).await {
@@ -182,7 +187,9 @@ pub async fn upload(collection_id: String, path: String, source_url: String) -> 
             Err(error) => {
                 if ours_to_remove(&db, &md5).await {
                     let _ = store::remove(&image_key).await;
-                    let _ = store::remove(&thumb_key).await;
+                    if thumb.is_some() {
+                        let _ = store::remove(&thumb_key).await;
+                    }
                 }
                 return Err(format!("Database insert failed: {error}"));
             }
@@ -195,7 +202,8 @@ pub async fn upload(collection_id: String, path: String, source_url: String) -> 
             "originalSize": original_size,
             "storedSize": optimized.bytes.len(),
             "rewritten": optimized.rewritten,
-            "thumbSize": thumb.len(),
+            "animated": header.animated,
+            "thumbSize": thumb.as_ref().map(Vec::len),
             "compression": optimized.note,
             "encodeMs": encode_ms,
         }))
@@ -251,6 +259,8 @@ pub async fn delete_post(id: i32) -> Value {
     .await;
 
     if let (Some(post), Some(true)) = (post, result.get("ok").and_then(Value::as_bool)) {
+        // The thumbnail is asked for even for an animated image, which was stored without one:
+        // a delete of a missing key succeeds, and a GIF from before 0002 does have one.
         let keys = vec![image_path(&post.file_name, &post.file_ext), thumb_path(&post.file_name, &post.file_ext)];
         remove_objects(keys, "collection:delete-image", detail).await;
         image_cache::forget(&post.file_name, &post.file_ext);

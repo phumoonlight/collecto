@@ -40,7 +40,7 @@ export async function collectionPostMetadata(id: string): Promise<Metadata> {
       title,
       description,
       siteName: SITE_NAME,
-      images: [{ url: collectionThumbUrl(post.file_name, post.file_ext), alt: title }],
+      images: [{ url: collectionThumbUrl(post.file_name, post.file_ext, post.animated), alt: title }],
     },
   }
 }

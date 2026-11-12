@@ -53,7 +53,7 @@ function CollectionCard({ collection }: { collection: Collection }) {
       <div className="grid aspect-square place-items-center overflow-hidden bg-background">
         {cover && coverExt ? (
           <Image
-            src={collectionThumbUrl(cover, coverExt)}
+            src={collectionThumbUrl(cover, coverExt, collection.cover_animated ?? false)}
             alt=""
             width={360}
             height={360}

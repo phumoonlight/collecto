@@ -126,7 +126,15 @@ export async function collectionMetadata(id: string): Promise<Metadata> {
   } in ${collection.name}.`
   const cover =
     collection.cover_file_name && collection.cover_file_ext
-      ? [{ url: collectionThumbUrl(collection.cover_file_name, collection.cover_file_ext) }]
+      ? [
+          {
+            url: collectionThumbUrl(
+              collection.cover_file_name,
+              collection.cover_file_ext,
+              collection.cover_animated ?? false
+            ),
+          },
+        ]
       : undefined
 
   return {

@@ -101,7 +101,11 @@ their original format (jpg/png/gif/webp; AVIF is not accepted). The stored image
 `catch_unwind`), oxipng, or max-effort lossless WebP — decoded and compared pixel-for-pixel with
 the upload, kept only if identical and smaller; otherwise the upload is stored byte-for-byte.
 GIF and lossy/animated WebP are stored as uploaded. Thumbnails (360px tall, ≤720 wide) are the
-only lossy step, in the same format (JPEG through mozjpeg's encoder, `jpeg::encode_rgb`). Upload order: dedupe by md5 → encode (inside the rayon pool
+only lossy step, in the same format (JPEG through mozjpeg's encoder, `jpeg::encode_rgb`).
+**Animated images get no thumbnail**: `compress::is_animated` reads the container (≥2 GIF
+frames, APNG `acTL`, WebP VP8X flag) into `collection_posts.animated` (`0002_animated.sql`, which
+backfilled every GIF as true), and every grid/cover/og image then uses the stored file —
+`collectionThumbUrl(…, animated)` on the website, no `?grid=` in the app. Upload order: dedupe by md5 → encode (inside the rayon pool
 from `prefs.rs`) → put image + thumb to R2 → insert row; on failure, objects are removed only if
 no row now owns that md5 (`ours_to_remove`).
 

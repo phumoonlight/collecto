@@ -23,7 +23,7 @@ macro_rules! post_columns {
     () => {
         concat!(
             "p.id, p.collection_id, p.file_name, p.file_ext, p.file_size, p.original_size, ",
-            "p.width, p.height, p.source_url, p.view_count, ",
+            "p.width, p.height, p.animated, p.source_url, p.view_count, ",
             iso!("p.created_at"),
             " as created_at"
         )
@@ -36,6 +36,7 @@ macro_rules! shelf_select {
             "select c.id, c.ref_id, c.name, c.mark, count(p.id)::int as post_count, ",
             "(array_agg(p.file_name order by p.id desc))[1] as cover_file_name, ",
             "(array_agg(p.file_ext order by p.id desc))[1] as cover_file_ext, ",
+            "(array_agg(p.animated order by p.id desc))[1] as cover_animated, ",
             iso!("c.updated_at"),
             " as updated_at ",
             "from collections c left join collection_posts p on p.collection_id = c.id "
@@ -55,6 +56,7 @@ pub struct Collection {
     /// The newest image on the shelf — the cover is derived, never stored.
     pub cover_file_name: Option<String>,
     pub cover_file_ext: Option<String>,
+    pub cover_animated: Option<bool>,
     pub updated_at: String,
 }
 
@@ -70,6 +72,8 @@ pub struct CollectionPost {
     pub original_size: i32,
     pub width: i32,
     pub height: i32,
+    /// Stored without a thumbnail, and drawn as the stored file wherever it appears.
+    pub animated: bool,
     pub source_url: Option<String>,
     pub view_count: i32,
     pub created_at: String,
@@ -266,6 +270,7 @@ pub struct NewPost<'a> {
     pub original_size: i32,
     pub width: i32,
     pub height: i32,
+    pub animated: bool,
     /// Empty is no source, stored as null.
     pub source_url: &'a str,
 }
@@ -284,8 +289,8 @@ pub async fn create_post(db: &PgPool, post: &NewPost<'_>) -> Result<i32, String>
     let source = Some(post.source_url.trim()).filter(|s| !s.is_empty());
     let id: i32 = sqlx::query_scalar(
         "insert into collection_posts
-           (collection_id, file_name, file_ext, file_size, original_size, width, height, source_url)
-         values ($1, $2, $3, $4, $5, $6, $7, $8) returning id",
+           (collection_id, file_name, file_ext, file_size, original_size, width, height, animated, source_url)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id",
     )
     .bind(post.collection_id)
     .bind(post.file_name)
@@ -294,6 +299,7 @@ pub async fn create_post(db: &PgPool, post: &NewPost<'_>) -> Result<i32, String>
     .bind(post.original_size)
     .bind(post.width)
     .bind(post.height)
+    .bind(post.animated)
     .bind(source)
     .fetch_one(&mut *tx)
     .await

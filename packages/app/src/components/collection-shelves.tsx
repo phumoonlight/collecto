@@ -185,11 +185,13 @@ export function ShelfList({
 }
 
 function ShelfCard({ collection, onOpen }: { collection: Collection; onOpen: () => void }) {
-  const { cover_file_name: cover, cover_file_ext: coverExt } = collection
+  const { cover_file_name: cover, cover_file_ext: coverExt, cover_animated: moving } = collection
   const images = `${collection.post_count} image${collection.post_count === 1 ? '' : 's'}`
   const [box, drawn] = useDrawnBox<HTMLDivElement>()
-  // Cut from the top: most covers are portraits, and a square from the middle is a torso.
-  const src = cover && coverExt && drawn ? fullImageUrl(cover, coverExt, `${drawn}-top`) : ''
+  // Cut from the top: most covers are portraits, and a square from the middle is a torso. An
+  // animated cover is the stored file (a cut copy would be a still); `object-top` crops it.
+  const grid = moving ? undefined : `${drawn}-top`
+  const src = cover && coverExt && drawn ? fullImageUrl(cover, coverExt, grid) : ''
 
   return (
     <button

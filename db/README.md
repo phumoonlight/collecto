@@ -50,6 +50,7 @@ real. Each runs inside a transaction and is recorded in `_migrations`.
 | file | |
 |---|---|
 | `0001_baseline.sql` | `collections` (cuid2 `id`, optional `ref_id`) and `collection_posts` |
+| `0002_animated.sql` | `collection_posts.animated` — stored without a thumbnail, drawn as the file; existing GIFs backfilled as true |
 
 ## Shape
 
@@ -69,6 +70,6 @@ collections ───< collection_posts
   unique across the table.
 - **Storage paths are derived, never stored**: `collections/posts/{file_name}.{file_ext}` and
   `collections/thumbs/{file_name}.{file_ext}`. Flat rather than per shelf, so moving an image is
-  one column and no object moves.
+  one column and no object moves. An `animated` image has no thumbnail object.
 - **The cover is derived** — the newest image on the shelf — not a column.
 - **`updated_at` is maintained by the app**, in the same transaction as each change.

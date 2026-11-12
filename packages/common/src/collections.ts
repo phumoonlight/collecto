@@ -22,6 +22,8 @@ export type CollectionPost = {
   original_size: number
   width: number
   height: number
+  /** It moves (GIF, APNG, animated WebP): stored with no thumbnail, drawn as the stored file. */
+  animated: boolean
   source_url: string | null
   view_count: number
   /** ISO-8601, formatted by the query. */
@@ -41,6 +43,7 @@ export type Collection = {
   /** The newest image's `file_name` — the cover is derived, never stored. Null when empty. */
   cover_file_name: string | null
   cover_file_ext: string | null
+  cover_animated: boolean | null
   updated_at: string
 }
 

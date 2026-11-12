@@ -8,6 +8,14 @@ import { ImageViewer } from './image-viewer'
 import { FIELD, Panel } from './panel'
 import { useDrawnBox } from './drawn-box'
 
+/**
+ * A tile's picture: the stored image cut to the tile's box — or, for an animated one, the stored
+ * file as it is, since a cut copy is a still. The webview scales that one itself.
+ */
+function tileUrl(post: CollectionPost, drawn: string): string {
+  return fullImageUrl(post.file_name, post.file_ext, post.animated ? undefined : drawn)
+}
+
 /** One tile, asking for its own image cut to its own box, loaded lazily. */
 export function ImageCard({
   post,
@@ -58,7 +66,7 @@ export function ImageCard({
       <div ref={box} className="grid h-(--row-h) place-items-center overflow-hidden bg-background">
         {drawn && (
           <img
-            src={fullImageUrl(post.file_name, post.file_ext, drawn)}
+            src={tileUrl(post, drawn)}
             alt=""
             loading="lazy"
             decoding="async"
@@ -88,7 +96,7 @@ function Preview({ post, onView }: { post: CollectionPost; onView: () => void })
     >
       {drawn && (
         <img
-          src={fullImageUrl(post.file_name, post.file_ext, drawn)}
+          src={tileUrl(post, drawn)}
           alt=""
           decoding="async"
           className="h-full w-full object-cover"

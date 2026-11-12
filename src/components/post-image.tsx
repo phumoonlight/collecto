@@ -31,7 +31,8 @@ import { BLUR_DATA_URL } from '@/lib/misc'
  * `unoptimized` on purpose, in both views: the detail page shows the stored file
  * byte-for-byte. That file is the upload in its own format, compressed losslessly by the app,
  * so it already is the best version this site holds — running it through the Next optimizer
- * would re-encode it lossily and strip animation. The grid uses the thumbnail instead.
+ * would re-encode it lossily and strip animation. The grid uses the thumbnail instead (or, for
+ * an animated image, which has none, this same file).
  */
 /**
  * A modal dialog makes the page behind it inert, but not still: the wheel still scrolls

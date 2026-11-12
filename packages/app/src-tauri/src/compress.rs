@@ -17,7 +17,9 @@
 //! byte-for-byte. The worst case is the file you gave it.
 //!
 //! The thumbnail is the one lossy step, since a thumbnail is a smaller picture by
-//! definition: 360px tall (width capped at 720), in the original's format.
+//! definition: 360px tall (width capped at 720), in the original's format. **An animated
+//! image has none** (`Header::animated`): a still cut from it would stop it moving, so every
+//! grid draws the stored file as it is.
 
 use std::io::Cursor;
 
@@ -97,6 +99,9 @@ pub struct Header {
     pub width: u32,
     pub height: u32,
     pub orientation: Orientation,
+    /// More than one frame — a GIF with two or more images, an APNG, an animated WebP. Such an
+    /// image is stored with no thumbnail and drawn as uploaded everywhere.
+    pub animated: bool,
 }
 
 fn quarter_turned(orientation: Orientation) -> bool {
@@ -122,7 +127,63 @@ pub fn read_header(bytes: &[u8]) -> Result<Header, String> {
         return Err("Not a readable image".into());
     }
     let (width, height) = if quarter_turned(orientation) { (h, w) } else { (w, h) };
-    Ok(Header { kind, width, height, orientation })
+    Ok(Header { kind, width, height, orientation, animated: is_animated(bytes, kind) })
+}
+
+/// Read from the container, nothing decoded. A truncated or odd file answers `false`: it
+/// then gets a thumbnail like any still, which is the old behaviour and never a broken tile.
+pub fn is_animated(bytes: &[u8], kind: Kind) -> bool {
+    match kind {
+        Kind::Gif => gif_frames_at_least_two(bytes),
+        Kind::Png => is_apng(bytes),
+        // VP8X's animation flag, the same bit `plain_lossless_webp` refuses.
+        Kind::WebP => bytes.len() >= 21 && &bytes[12..16] == b"VP8X" && bytes[20] & 0x02 != 0,
+        Kind::Jpeg => false,
+    }
+}
+
+/// Walks the GIF's blocks and stops at the second image descriptor. A one-frame GIF is a
+/// still and gets a thumbnail like any other.
+fn gif_frames_at_least_two(bytes: &[u8]) -> bool {
+    // A colour table of 3 × 2^(n+1) bytes follows when the packed byte's top bit is set.
+    let table = |packed: u8| if packed & 0x80 != 0 { 3 * (2usize << (packed & 0x07)) } else { 0 };
+    // Data sub-blocks: a length byte, that many bytes, until a zero length.
+    let skip_blocks = |mut at: usize| -> Option<usize> {
+        loop {
+            let length = *bytes.get(at)? as usize;
+            at += 1;
+            if length == 0 {
+                return Some(at);
+            }
+            at += length;
+        }
+    };
+    if bytes.len() < 13 {
+        return false;
+    }
+    let mut at = 13 + table(bytes[10]);
+    let mut frames = 0;
+    loop {
+        match bytes.get(at) {
+            Some(0x2C) => {
+                let Some(&packed) = bytes.get(at + 9) else { return false };
+                frames += 1;
+                if frames >= 2 {
+                    return true;
+                }
+                // Descriptor (10), local table, LZW minimum code size (1), then the data.
+                match skip_blocks(at + 10 + table(packed) + 1) {
+                    Some(next) => at = next,
+                    None => return false,
+                }
+            }
+            Some(0x21) => match skip_blocks(at + 2) {
+                Some(next) => at = next,
+                None => return false,
+            },
+            _ => return false,
+        }
+    }
 }
 
 /// The ceilings: 50MB, 100MP. A sane thing to refuse rather than anything forcing it — and
@@ -524,6 +585,48 @@ mod tests {
             .unwrap();
         let thumb = thumbnail(&gif, Kind::Gif).unwrap();
         assert_eq!(Kind::detect(&thumb), Some(Kind::Gif));
+    }
+
+    #[test]
+    fn animation_is_read_from_the_container() {
+        // One frame is a still, whatever the format.
+        let mut still = Vec::new();
+        DynamicImage::ImageRgb8(sample(100, 50))
+            .write_to(&mut Cursor::new(&mut still), ImageFormat::Gif)
+            .unwrap();
+        assert!(!read_header(&still).unwrap().animated);
+
+        // Two frames, each with its own local colour table — the walk must skip both.
+        let frames = [Rgba([255, 0, 0, 255]), Rgba([0, 0, 255, 255])]
+            .map(|colour| image::Frame::new(RgbaImage::from_pixel(40, 20, colour)));
+        let mut moving = Vec::new();
+        image::codecs::gif::GifEncoder::new(&mut moving).encode_frames(frames).unwrap();
+        let header = read_header(&moving).unwrap();
+        assert!(header.animated);
+        assert_eq!((header.width, header.height), (40, 20));
+
+        // A cut-off GIF answers "still" rather than failing.
+        assert!(!is_animated(&moving[..20], Kind::Gif));
+
+        let mut png = Vec::new();
+        DynamicImage::ImageRgb8(sample(10, 10))
+            .write_to(&mut Cursor::new(&mut png), ImageFormat::Png)
+            .unwrap();
+        assert!(!is_animated(&png, Kind::Png));
+        // An `acTL` before the first `IDAT` is what makes a PNG an APNG.
+        let ihdr_end = 8 + 12 + 13;
+        let mut apng = png[..ihdr_end].to_vec();
+        apng.extend_from_slice(&[0, 0, 0, 8, b'a', b'c', b'T', b'L', 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0]);
+        apng.extend_from_slice(&png[ihdr_end..]);
+        assert!(is_animated(&apng, Kind::Png));
+
+        let webp = |flags: u8| {
+            let mut bytes = b"RIFF\0\0\0\0WEBPVP8X\x0a\0\0\0".to_vec();
+            bytes.extend_from_slice(&[flags, 0, 0, 0, 9, 0, 0, 9, 0, 0]);
+            bytes
+        };
+        assert!(is_animated(&webp(0x02 | 0x10), Kind::WebP));
+        assert!(!is_animated(&webp(0x10), Kind::WebP));
     }
 
     #[test]

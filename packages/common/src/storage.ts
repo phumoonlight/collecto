@@ -1,7 +1,8 @@
 /**
  * Where an image lives in the bucket. Paths are derived from `file_name` (the md5) and
  * `file_ext` and never stored. The thumbnail keeps the image's own extension, because no
- * image is ever converted to another format. Spelled again in Rust as `src-tauri/src/paths.rs`,
+ * image is ever converted to another format. An animated image (`animated`) has no thumbnail;
+ * its thumbnail path names nothing. Spelled again in Rust as `src-tauri/src/paths.rs`,
  * which is the side that writes them — keep the two in step.
  *
  * Nothing here reads the environment: the base is an argument, which each host supplies.

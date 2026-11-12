@@ -24,9 +24,10 @@ export function CollectionGrid({ posts }: { posts: WebPost[] }) {
             rel="noopener"
             className="group block h-full overflow-hidden bg-surface"
           >
-            {/* `unoptimized`: the stored thumbnail already is the compressed one. */}
+            {/* `unoptimized`: the stored thumbnail already is the compressed one — and an
+                animated image is the stored file, which the optimizer would freeze. */}
             <Image
-              src={collectionThumbUrl(post.file_name, post.file_ext)}
+              src={collectionThumbUrl(post.file_name, post.file_ext, post.animated)}
               alt=""
               width={post.width}
               height={post.height}

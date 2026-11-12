@@ -119,7 +119,8 @@ export function Settings({ status, onChanged }: { status: AppStatus; onChanged: 
             optimized Huffman tables and progressive scans, PNGs a full oxipng pass, lossless WebPs
             libwebp&rsquo;s maximum effort. Each result is checked pixel for pixel against the
             original and kept only if it matches and is smaller. GIFs and lossy WebPs are stored as
-            uploaded.
+            uploaded. Animated images (GIF, APNG, WebP) get no thumbnail: they are shown as
+            uploaded, moving, everywhere.
           </p>
         </div>
 

@@ -43,7 +43,9 @@ if the pixels match and the file is smaller, so the worst case is the file you u
 EXIF is kept only when it carries an orientation; ICC profiles are always kept.
 
 The thumbnail is the one lossy step: 360px tall (width capped at 720), in the image's own
-format; a JPEG thumbnail is encoded by mozjpeg (quality 85, trellis, progressive). Limits are 50MB and 100MP per file.
+format; a JPEG thumbnail is encoded by mozjpeg (quality 85, trellis, progressive). An animated
+image (a GIF with two or more frames, an APNG, an animated WebP) gets no thumbnail: the row's
+`animated` flag makes the website and the app draw the stored file, moving, in every grid. Limits are 50MB and 100MP per file.
 
 ## Setup
 
