@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 }
 
 const DOOR =
-  'flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-border bg-surface px-5 text-sm transition-colors hover:border-accent'
+  'flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-border bg-surface px-5 text-sm transition-colors hover:border-hover'
 
 /**
  * The front door: the wordmark, the two ways in, and how many images are behind them. Static

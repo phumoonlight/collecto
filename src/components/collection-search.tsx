@@ -29,7 +29,7 @@ export function CollectionSearch({ filter }: { filter: CollectionListFilter }) {
       />
       <button
         type="submit"
-        className="flex min-h-11 items-center gap-1.5 rounded-lg border border-border bg-surface px-4 text-sm transition-colors hover:border-accent"
+        className="flex min-h-11 items-center gap-1.5 rounded-lg border border-border bg-surface px-4 text-sm transition-colors hover:border-hover"
       >
         <span aria-hidden>🔍</span> Search
       </button>

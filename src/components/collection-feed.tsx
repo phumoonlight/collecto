@@ -85,7 +85,7 @@ export function CollectionFeed({
             type="button"
             onClick={load}
             aria-busy={pending}
-            className="flex min-h-11 items-center justify-center rounded-lg border border-border bg-surface px-6 text-sm transition-colors hover:border-accent"
+            className="flex min-h-11 items-center justify-center rounded-lg border border-border bg-surface px-6 text-sm transition-colors hover:border-hover"
           >
             {pending ? 'Loading…' : failed ? 'Failed to load — try again' : 'Load more'}
           </button>

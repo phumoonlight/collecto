@@ -10,7 +10,7 @@ import { LATEST_POSTS_LIMIT } from '@/lib/misc'
 import { collectionsHref } from '@common/collections'
 
 const BUTTON =
-  'flex min-h-11 items-center justify-center rounded-lg border border-border bg-surface px-6 text-sm transition-colors hover:border-accent'
+  'flex min-h-11 items-center justify-center rounded-lg border border-border bg-surface px-6 text-sm transition-colors hover:border-hover'
 
 /**
  * `/posts`: the newest images across every shelf, the server's screenful first and then a

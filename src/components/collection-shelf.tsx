@@ -46,7 +46,7 @@ function CollectionCard({ collection }: { collection: Collection }) {
   return (
     <Link
       href={collectionHref(collectionSlug(collection))}
-      className="group block overflow-hidden rounded-lg border border-border bg-surface transition-colors hover:border-accent"
+      className="group block overflow-hidden rounded-lg border border-border bg-surface transition-colors hover:border-hover"
     >
       {/* The newest image on the shelf, derived rather than stored. Held to the top: most
           covers are portraits, and a square from the middle of one cuts off the face. */}
