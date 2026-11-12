@@ -1,6 +1,6 @@
 [package]
 name = "collecto-app"
-version = "0.2.1"
+version = "0.2.2"
 description = "Collecto's manager: collections, uploads with lossless compression, caching and logs"
 edition = "2021"
 publish = false

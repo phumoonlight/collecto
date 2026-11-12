@@ -1,6 +1,6 @@
 {
   "name": "app",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "description": "Collecto's manager — a Tauri app with a Rust backend: collections, uploads with lossless compression, caching and logs",

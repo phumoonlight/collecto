@@ -106,7 +106,9 @@ from `prefs.rs`) → put image + thumb to R2 → insert row; on failure, objects
 no row now owns that md5 (`ours_to_remove`).
 
 **App backend layout.** `commands.rs` is the entire IPC surface (args camelCase from JS →
-snake_case). Writes go through `activity::logged`, which returns `{ok:true,…}|{ok:false,error}`
+snake_case). Every async command awaits its work as `Box::pin(…).await`, keeping its own
+future a pointer: Tauri moves command futures on the 1 MB Windows main thread, and unboxed
+~40 KB futures gave ~600 KB handler frames — a stack overflow (`0xc00000fd`) on Move in 0.2.1. Writes go through `activity::logged`, which returns `{ok:true,…}|{ok:false,error}`
 to the window and appends to `app/cache/logs.json`, emitting `activity:entry` (Logs screen +
 error notices). Reads return `Result<_, String>` (the JS promise rejects). Every write calls
 `cache::drop_collections()`. SQL lives only in `data.rs` (sqlx, runtime queries, no macros;

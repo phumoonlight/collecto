@@ -22,6 +22,13 @@ use crate::paths::cache_dir;
 use crate::prefs::{self, cpu_count, Preferences};
 use crate::staging::{self, StageOutcome};
 
+// **Every async command boxes the work it awaits** (`Box::pin(…).await`), so its own future is
+// a pointer. Tauri builds and moves each command's future on the main thread, which has a
+// 1 MB stack on Windows, and in a release build those moves are not overlapped: with ~40 KB
+// futures the invoke handler's frame was ~600 KB, and Move's wrapper (not inlined) asked for
+// another ~600 KB — a stack overflow the moment ➡️ Change collection was pressed. Keep it so
+// for any command added here.
+
 const MAX_BATCH: usize = 200;
 const MAX_SELECTION: usize = 1000;
 
@@ -98,17 +105,17 @@ pub async fn choose_files(app: AppHandle) -> Vec<String> {
 
 #[tauri::command]
 pub async fn stage_files(paths: Vec<String>) -> Vec<StageOutcome> {
-    staging::stage_files(paths.into_iter().take(MAX_BATCH).collect()).await
+    Box::pin(staging::stage_files(paths.into_iter().take(MAX_BATCH).collect())).await
 }
 
 #[tauri::command]
 pub async fn fetch_images(urls: Vec<String>) -> Vec<StageOutcome> {
-    staging::fetch_images(urls.into_iter().take(50).collect()).await
+    Box::pin(staging::fetch_images(urls.into_iter().take(50).collect())).await
 }
 
 #[tauri::command]
 pub async fn list_collections(force: Option<bool>) -> Result<Vec<Collection>, String> {
-    collections::read_collections(force.unwrap_or(false)).await
+    Box::pin(collections::read_collections(force.unwrap_or(false))).await
 }
 
 #[derive(Deserialize)]
@@ -142,14 +149,14 @@ fn collection_id(id: String) -> Result<String, Value> {
 pub async fn create_collection(input: CollectionInput) -> Value {
     let input = bounded(input);
     // The address is made from the name; one sent along is ignored.
-    collections::create(input.name, input.mark).await
+    Box::pin(collections::create(input.name, input.mark)).await
 }
 
 #[tauri::command]
 pub async fn edit_collection(id: String, input: CollectionInput) -> Value {
     let input = bounded(input);
     match collection_id(id) {
-        Ok(id) => collections::edit(id, input.name, input.mark, input.ref_id).await,
+        Ok(id) => Box::pin(collections::edit(id, input.name, input.mark, input.ref_id)).await,
         Err(refused) => refused,
     }
 }
@@ -157,7 +164,7 @@ pub async fn edit_collection(id: String, input: CollectionInput) -> Value {
 #[tauri::command]
 pub async fn delete_collection(id: String) -> Value {
     match collection_id(id) {
-        Ok(id) => collections::delete(id).await,
+        Ok(id) => Box::pin(collections::delete(id)).await,
         Err(refused) => refused,
     }
 }
@@ -173,7 +180,7 @@ pub struct PostsQuery {
 #[tauri::command]
 pub async fn list_collection_posts(query: PostsQuery) -> Result<PostPage, String> {
     let id = collection_id(query.collection_id).map_err(|_| "No such collection.".to_string())?;
-    collections::read_posts(id, query.after, query.per_page).await
+    Box::pin(collections::read_posts(id, query.after, query.per_page)).await
 }
 
 #[derive(Deserialize)]
@@ -188,7 +195,7 @@ pub struct UploadRequest {
 pub async fn upload_to_collection(request: UploadRequest) -> Value {
     let source: String = request.source_url.trim().chars().take(2000).collect();
     match collection_id(request.collection_id) {
-        Ok(id) => collections::upload(id, request.path, source).await,
+        Ok(id) => Box::pin(collections::upload(id, request.path, source)).await,
         Err(refused) => refused,
     }
 }
@@ -203,7 +210,7 @@ pub struct SourceEdit {
 #[tauri::command]
 pub async fn save_collection_post(request: SourceEdit) -> Value {
     let source: String = request.source_url.trim().chars().take(2000).collect();
-    collections::save_source(request.id, source).await
+    Box::pin(collections::save_source(request.id, source)).await
 }
 
 #[tauri::command]
@@ -215,12 +222,12 @@ pub async fn move_collection_posts(ids: Vec<i32>, collection_id: String) -> Valu
     let mut ids: Vec<i32> = ids.into_iter().filter(|id| *id > 0).take(MAX_SELECTION).collect();
     ids.sort_unstable();
     ids.dedup();
-    collections::move_posts(ids, collection_id).await
+    Box::pin(collections::move_posts(ids, collection_id)).await
 }
 
 #[tauri::command]
 pub async fn delete_collection_post(id: i32) -> Value {
-    collections::delete_post(id).await
+    Box::pin(collections::delete_post(id)).await
 }
 
 #[tauri::command]
@@ -258,7 +265,7 @@ pub fn open_external(app: AppHandle, url: String) -> Result<(), String> {
 pub async fn set_connection(code: String, passphrase: String) -> Value {
     let code: String = code.chars().filter(|c| !c.is_whitespace()).take(8000).collect();
     let passphrase: String = passphrase.chars().take(500).collect();
-    activity::logged("connection:set", json!({}), async move {
+    Box::pin(activity::logged("connection:set", json!({}), async move {
         let config = tauri::async_runtime::spawn_blocking(move || crate::setup::decode(&code, &passphrase))
             .await
             .map_err(|e| e.to_string())??;
@@ -271,7 +278,7 @@ pub async fn set_connection(code: String, passphrase: String) -> Value {
         crate::config::set(Some(config));
         cache::drop_collections();
         Ok(json!({ "databaseHost": host }))
-    })
+    }))
     .await
 }
 
@@ -279,12 +286,12 @@ pub async fn set_connection(code: String, passphrase: String) -> Value {
 /// back to asking for a setup code.
 #[tauri::command]
 pub async fn clear_connection() -> Value {
-    activity::logged("connection:clear", json!({}), async {
+    Box::pin(activity::logged("connection:clear", json!({}), async {
         crate::setup::forget()?;
         crate::config::set(None);
         cache::drop_collections();
         Ok(json!({}))
-    })
+    }))
     .await
 }
 
