@@ -368,6 +368,12 @@ npm run app:code     # the setup code the app asks for on first start</code></pr
           or any <code>R2_*</code> — the website never writes.
         </li>
         <li>Node.js 24 is required (<code>engines</code> in <code>package.json</code>). The region is <code>sin1</code> (<code>vercel.json</code>).</li>
+        <li>
+          Only two branches deploy (<code>git.deploymentEnabled</code> in <code>vercel.json</code>):
+          <code>deploy-prod</code> — set it as the Production branch (Settings → Environments) —
+          and <code>deploy-preview</code>, a preview. Pushes to <code>main</code> or any other
+          branch build nothing.
+        </li>
         <li>Optionally enable Web Analytics and Speed Insights; both are already wired in.</li>
         <li>
           Firewall → Bot Management: turn on <strong>AI Bots</strong> — it is a dashboard setting,
