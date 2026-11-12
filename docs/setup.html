@@ -369,6 +369,12 @@ npm run app:code     # the setup code the app asks for on first start</code></pr
         </li>
         <li>Node.js 24 is required (<code>engines</code> in <code>package.json</code>). The region is <code>sin1</code> (<code>vercel.json</code>).</li>
         <li>Optionally enable Web Analytics and Speed Insights; both are already wired in.</li>
+        <li>
+          Firewall → Bot Management: turn on <strong>AI Bots</strong> — it is a dashboard setting,
+          not something <code>vercel.json</code> can set. <code>robots.txt</code> already asks the
+          known AI crawlers to stay out (<code>src/app/robots.ts</code>), but only polite ones
+          listen; the switch is what blocks the rest.
+        </li>
       </ol>
 
       <h2 id="trouble">10. Troubleshooting</h2>
